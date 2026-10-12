@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ريم">
+<meta name="theme-color" content="#0e4d5c">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>ريم السكرتيرة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700&display=swap">
+<style>
+/* Layout: one phone column — her card + today's brief, then the chat with her, then the agenda and orders lists */
+:root{
+  --bg:#f3efe8; --surface:#fffdf9; --fg:#1f2430; --muted:#6b6f7a; --line:#e2dbcf;
+  --brand:#0e4d5c; --brand-fg:#fdf8ef; --saffron:#e0a43a; --bubble:#e7f0f1;
+  --ok:#2f7d4f; --warn:#b86a12; --late:#b3372b;
+  --display:"Lalezar","Vazirmatn",system-ui,sans-serif;
+  --body:"Vazirmatn",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13181c; --surface:#1b2227; --fg:#ece7de; --muted:#9aa1a8; --line:#2b343b;
+  --brand:#1f7385; --brand-fg:#f6efe2; --saffron:#f0b84f; --bubble:#203038;
+  --ok:#5cbf83; --warn:#e3a14a; --late:#ef7a6d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13181c; --surface:#1b2227; --fg:#ece7de; --muted:#9aa1a8; --line:#2b343b;
+  --brand:#1f7385; --brand-fg:#f6efe2; --saffron:#f0b84f; --bubble:#203038;
+  --ok:#5cbf83; --warn:#e3a14a; --late:#ef7a6d; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);direction:rtl;padding-inline:16px;padding-block:14px 40px;font-size:15px}
+.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.hero{background:var(--brand);color:var(--brand-fg);border-radius:22px;padding:18px;display:flex;gap:14px;align-items:center}
+.hero svg{flex:0 0 88px;width:88px;height:88px}
+.hero h1{margin:0;font-family:var(--display);font-weight:400;font-size:1.9rem;line-height:1.1}
+.hero p{margin:4px 0 0;opacity:.88;line-height:1.6;font-size:.92rem}
+.hero .date{font-size:.78rem;opacity:.75;letter-spacing:.02em}
+.brief{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.stat b{display:block;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.stat span{font-size:.78rem;color:var(--muted)}
+.stat.late b{color:var(--late)}
+h2{font-family:var(--display);font-weight:400;font-size:1.3rem;margin:4px 0 0;display:flex;justify-content:space-between;align-items:baseline}
+h2 small{font-family:var(--body);font-size:.75rem;color:var(--muted)}
+.chat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.log{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
+.msg{max-width:85%;padding:9px 12px;border-radius:14px;line-height:1.65;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere}
+.msg.me{align-self:flex-start;background:var(--brand);color:var(--brand-fg);border-bottom-left-radius:4px}
+.msg.her{align-self:flex-end;background:var(--bubble);border-bottom-right-radius:4px}
+.msg.wait{opacity:.6}
+.ask{display:flex;gap:8px}
+.ask input{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:1rem var(--body);padding:11px 12px}
+.ask button{border:0;border-radius:12px;background:var(--saffron);color:#2a1d05;font:700 .95rem var(--body);padding:0 16px;cursor:pointer}
+.ask button:disabled{opacity:.5}
+.tips{display:flex;gap:6px;flex-wrap:wrap}
+.tip{border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:6px 11px;font:.8rem var(--body);cursor:pointer;text-align:right}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:11px 12px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item input{width:20px;height:20px;accent-color:var(--brand)}
+.item .t{min-width:0}
+.item .t b{font-weight:500;display:block;overflow-wrap:anywhere}
+.item .t span{font-size:.8rem;color:var(--muted)}
+.item.done .t b{text-decoration:line-through;color:var(--muted)}
+.pill{font-size:.72rem;border-radius:999px;padding:3px 9px;white-space:nowrap;border:1px solid currentColor}
+.pill.today{color:var(--warn)} .pill.late{color:var(--late)} .pill.soon{color:var(--ok)} .pill.later{color:var(--muted)}
+.del{border:0;background:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:2px 4px}
+.empty{padding:16px;color:var(--muted);font-size:.88rem;line-height:1.7}
+.foot{font-size:.78rem;color:var(--muted);line-height:1.7;text-align:center}
+.fld{border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:1rem var(--body);padding:11px 12px;min-width:0;width:100%;box-sizing:border-box}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chips2{display:flex;gap:14px;font-size:.92rem}
+.chips2 input{accent-color:var(--brand)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--saffron);outline-offset:2px}
+@media (max-width:380px){.brief{grid-template-columns:1fr 1fr 1fr}.stat b{font-size:1.25rem}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <section class="hero">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="48" fill="#e0a43a"/>
+      <path d="M18 98c2-22 15-34 32-34s30 12 32 34z" fill="#0b3a45"/>
+      <path d="M26 54c0-22 10-36 24-36s24 14 24 36c0 8-3 14-6 18H32c-3-4-6-10-6-18z" fill="#f4ede0"/>
+      <ellipse cx="50" cy="50" rx="15" ry="18" fill="#c99272"/>
+      <path d="M35 46c2-12 8-18 15-18s13 6 15 18c-4-6-9-9-15-9s-11 3-15 9z" fill="#f4ede0"/>
+      <circle cx="44" cy="50" r="1.8" fill="#2a1d14"/><circle cx="56" cy="50" r="1.8" fill="#2a1d14"/>
+      <path d="M45 58q5 4 10 0" stroke="#7a3f2c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <rect x="60" y="74" width="16" height="12" rx="2" fill="#fdf8ef" transform="rotate(-10 68 80)"/>
+      <path d="M62 77h11M62 80h8" stroke="#0e4d5c" stroke-width="1.2" transform="rotate(-10 68 80)"/>
+    </svg>
+    <div>
+      <div class="date" id="today"></div>
+      <h1>ريم</h1>
+      <p id="greet">سكرتيرتك الخاصة يا سالم. سجّل موعدك أو طلب زبون وأنا أرتبه لك.</p>
+    </div>
+  </section>
+
+  <div class="brief">
+    <div class="stat"><b id="sToday">0</b><span>مواعيد اليوم</span></div>
+    <div class="stat"><b id="sOpen">0</b><span>طلبات مفتوحة</span></div>
+    <div class="stat late"><b id="sLate">0</b><span>متأخرة</span></div>
+  </div>
+
+  <h2>أضف لريم</h2>
+  <form class="chat" id="add">
+    <div class="chips2">
+      <label><input type="radio" name="type" value="appt" checked> موعد</label>
+      <label><input type="radio" name="type" value="task"> طلب / شغل</label>
+    </div>
+    <input id="title" class="fld" type="text" placeholder="مثلًا: تصوير عرس في السيب" required aria-label="العنوان">
+    <div class="two">
+      <input id="date" class="fld" type="date" aria-label="التاريخ">
+      <input id="time" class="fld" type="time" aria-label="الوقت">
+    </div>
+    <input id="client" class="fld" type="text" placeholder="اسم الزبون (اختياري)" aria-label="الزبون">
+    <div class="ask"><button id="go" type="submit" style="flex:1;padding:12px">سجّل</button><button type="button" id="briefBtn" style="background:var(--bubble);color:var(--fg)">ملخص يومي</button></div>
+    <div class="log" id="log" aria-live="polite"></div>
+  </form>
+
+  <h2>المواعيد <small id="apptCount"></small></h2>
+  <div class="list" id="appts"></div>
+
+  <h2>الطلبات والشغل <small id="taskCount"></small></h2>
+  <div class="list" id="tasks"></div>
+
+  <p class="foot" id="foot">البيانات محفوظة على جهازك فقط.</p>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const AR=new Intl.DateTimeFormat('ar-OM',{weekday:'long',day:'numeric',month:'long'});
+const ART=new Intl.DateTimeFormat('ar-OM',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
+const ARD=new Intl.DateTimeFormat('ar-OM',{weekday:'short',day:'numeric',month:'short'});
+$('today').textContent=AR.format(new Date());
+
+let items=[]; let store=null; let sample=null;
+const LS='reem-items';
+function lsLoad(){try{return JSON.parse(localStorage.getItem(LS)||'[]')}catch(e){return[]}}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify(items))}catch(e){}}
+items=lsLoad();
+
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const startOf=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
+function when(it){
+  if(!it.due)return null;
+  const d=new Date(it.due); if(isNaN(d))return null;
+  const t0=startOf(new Date()), dd=startOf(d), diff=(dd-t0)/864e5;
+  if(!it.done && d<new Date() && (it.type==='task'||diff<0))return{cls:'late',txt:'متأخر'};
+  if(diff===0)return{cls:'today',txt:'اليوم'};
+  if(diff===1)return{cls:'soon',txt:'بكرة'};
+  if(diff>1&&diff<7)return{cls:'soon',txt:'هالأسبوع'};
+  return{cls:'later',txt:diff<0?'مضى':'لاحقًا'};
+}
+function fmt(it){
+  if(!it.due)return'بدون موعد';
+  const d=new Date(it.due); if(isNaN(d))return'';
+  return it.allDay?ARD.format(d):ART.format(d);
+}
+function row(it){
+  const w=when(it);
+  const el=document.createElement('div');el.className='item'+(it.done?' done':'');
+  const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!it.done;cb.id='c-'+it.id;cb.setAttribute('aria-label','تم');
+  cb.onchange=()=>save({...it,done:cb.checked});
+  const t=document.createElement('div');t.className='t';
+  const b=document.createElement('b');b.textContent=it.title;
+  const s=document.createElement('span');s.textContent=[fmt(it),it.client,it.place].filter(Boolean).join(' · ');
+  t.append(b,s);
+  const end=document.createElement('div');end.style.cssText='display:flex;gap:4px;align-items:center';
+  if(w&&!it.done){const p=document.createElement('span');p.className='pill '+w.cls;p.textContent=w.txt;end.append(p)}
+  const x=document.createElement('button');x.className='del';x.textContent='×';x.setAttribute('aria-label','حذف');
+  x.onclick=()=>remove(it.id);end.append(x);
+  el.append(cb,t,end);return el;
+}
+function render(){
+  const sorted=[...items].sort((a,b)=>(a.done-b.done)||((a.due?new Date(a.due):9e15)-(b.due?new Date(b.due):9e15)));
+  const ap=sorted.filter(i=>i.type==='appt'), tk=sorted.filter(i=>i.type!=='appt');
+  const fill=(box,arr,emptyTxt)=>{box.replaceChildren();if(!arr.length){const e=document.createElement('div');e.className='empty';e.textContent=emptyTxt;box.append(e)}else arr.forEach(i=>box.append(row(i)))};
+  fill($('appts'),ap,'ما عندك مواعيد. أضف أول موعد من الخانة فوق.');
+  fill($('tasks'),tk,'ما في طلبات مفتوحة. سجّل أي طلب زبون مع موعد التسليم.');
+  const t0=startOf(new Date()).getTime();
+  $('sToday').textContent=ap.filter(i=>!i.done&&i.due&&startOf(i.due).getTime()===t0).length;
+  $('sOpen').textContent=tk.filter(i=>!i.done).length;
+  $('sLate').textContent=items.filter(i=>!i.done&&when(i)?.cls==='late').length;
+  $('apptCount').textContent=ap.filter(i=>!i.done).length?ap.filter(i=>!i.done).length+' قادم':'';
+  $('taskCount').textContent=tk.filter(i=>!i.done).length?tk.filter(i=>!i.done).length+' مفتوح':'';
+}
+async function save(it){
+  const i=items.findIndex(x=>x.id===it.id); if(i>=0)items[i]=it; else items.push(it);
+  render(); lsSave();
+  if(store){try{await store.doc(it.id).set(it)}catch(e){}}
+}
+async function remove(id){
+  items=items.filter(x=>x.id!==id); render(); lsSave();
+  if(store){try{await store.doc(id).delete()}catch(e){}}
+}
+
+function bubble(txt,who,wait){const m=document.createElement('div');m.className='msg '+who+(wait?' wait':'');m.textContent=txt;$('log').append(m);$('log').scrollTop=$('log').scrollHeight;return m}
+
+
+function brief(){
+  const t0=startOf(new Date()).getTime();
+  const today=items.filter(i=>!i.done&&i.due&&startOf(i.due).getTime()===t0);
+  const late=items.filter(i=>!i.done&&when(i)?.cls==='late');
+  if(!today.length&&!late.length)return'يومك فاضي، ما عندك مواعيد ولا شي متأخر. وقت ممتاز تشتغل على مشاريعك.';
+  let s='';
+  if(today.length)s+='اليوم عندك:\n'+today.map(i=>'• '+i.title+(i.due&&!i.allDay?' الساعة '+new Intl.DateTimeFormat('ar-OM',{hour:'numeric',minute:'2-digit'}).format(new Date(i.due)):'')).join('\n');
+  if(late.length)s+=(s?'\n\n':'')+'ومتأخر عليك:\n'+late.map(i=>'• '+i.title).join('\n');
+  return s;
+}
+
+function addItem(e){
+  e.preventDefault();
+  const type=document.querySelector('input[name=type]:checked').value;
+  const title=$('title').value.trim(); if(!title)return;
+  const d=$('date').value, t=$('time').value;
+  let due=null, allDay=false;
+  if(d){due=new Date(d+'T'+(t||'00:00')).toISOString(); allDay=!t}
+  save({id:uid(),type,title,due,allDay,client:$('client').value.trim(),place:'',done:false,created:Date.now()});
+  bubble('تمام يا سالم، سجلت: '+title+(due?' — '+fmt({due,allDay}):''),'her');
+  $('title').value='';$('client').value='';$('time').value='';
+}
+$('add').addEventListener('submit',addItem);
+$('briefBtn').addEventListener('click',()=>bubble(brief(),'her'));
+$('date').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+render();
+</script>
+</body>
+</html>

@@ -10,16 +10,13 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>ريم السكرتيرة</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700&display=swap">
 <style>
-/* Layout: one phone column — her card + today's brief, then the chat with her, then the agenda and orders lists */
+/* Layout: her big avatar + talk button at the top, today's numbers, the conversation, then the lists and settings */
 :root{
   --bg:#f3efe8; --surface:#fffdf9; --fg:#1f2430; --muted:#6b6f7a; --line:#e2dbcf;
   --brand:#0e4d5c; --brand-fg:#fdf8ef; --saffron:#e0a43a; --bubble:#e7f0f1;
   --ok:#2f7d4f; --warn:#b86a12; --late:#b3372b;
-  --display:"Lalezar","Vazirmatn",system-ui,sans-serif;
-  --body:"Vazirmatn",system-ui,sans-serif;
+  --body:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#13181c; --surface:#1b2227; --fg:#ece7de; --muted:#9aa1a8; --line:#2b343b;
@@ -29,73 +26,119 @@
   --bg:#13181c; --surface:#1b2227; --fg:#ece7de; --muted:#9aa1a8; --line:#2b343b;
   --brand:#1f7385; --brand-fg:#f6efe2; --saffron:#f0b84f; --bubble:#203038;
   --ok:#5cbf83; --warn:#e3a14a; --late:#ef7a6d; color-scheme:dark}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);direction:rtl;padding-inline:16px;padding-block:14px 40px;font-size:15px}
+*{box-sizing:border-box}
+html,body{overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);direction:rtl;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 40px);font-size:15px}
 .wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-.hero{background:var(--brand);color:var(--brand-fg);border-radius:22px;padding:18px;display:flex;gap:14px;align-items:center}
-.hero svg{flex:0 0 88px;width:88px;height:88px}
-.hero h1{margin:0;font-family:var(--display);font-weight:400;font-size:1.9rem;line-height:1.1}
-.hero p{margin:4px 0 0;opacity:.88;line-height:1.6;font-size:.92rem}
-.hero .date{font-size:.78rem;opacity:.75;letter-spacing:.02em}
-.brief{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hero{position:relative;background:radial-gradient(120% 90% at 50% 0%,#1f7385 0%,#0e4d5c 55%,#0a3540 100%);color:var(--brand-fg);
+  border-radius:28px;padding:20px 18px 18px;text-align:center;overflow:hidden}
+.hero .date{font-size:.8rem;opacity:.8}
+.avatar{position:relative;width:170px;height:170px;margin:10px auto 6px}
+.avatar::before{content:"";position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,rgba(240,184,79,.45),transparent 65%);opacity:.55;transition:opacity .3s,transform .3s}
+.avatar svg{position:relative;width:100%;height:100%;filter:drop-shadow(0 14px 22px rgba(0,0,0,.35))}
+.hero.listening .avatar::before{opacity:1;animation:pulse 1.1s ease-in-out infinite}
+.hero.speaking #mouth{animation:talk .22s ease-in-out infinite alternate;transform-origin:50px 58px}
+@keyframes pulse{0%,100%{transform:scale(.94)}50%{transform:scale(1.08)}}
+@keyframes talk{from{transform:scaleY(.6)}to{transform:scaleY(1.9)}}
+.hero h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:.5px}
+.hero p{margin:6px 0 0;opacity:.9;line-height:1.6;font-size:.95rem;min-height:1.6em}
+.mic{margin:14px auto 0;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;
+  background:var(--saffron);color:#2a1d05;font:800 1.05rem var(--body);padding:14px 26px;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.25)}
+.mic svg{width:22px;height:22px}
+.hero.listening .mic{background:#fff;color:var(--late)}
+.heard{font-size:.85rem;opacity:.85;margin-top:8px;min-height:1.3em}
+.brief{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
 .stat b{display:block;font-size:1.5rem;font-variant-numeric:tabular-nums}
 .stat span{font-size:.78rem;color:var(--muted)}
 .stat.late b{color:var(--late)}
-h2{font-family:var(--display);font-weight:400;font-size:1.3rem;margin:4px 0 0;display:flex;justify-content:space-between;align-items:baseline}
-h2 small{font-family:var(--body);font-size:.75rem;color:var(--muted)}
+h2{font-weight:800;font-size:1.15rem;margin:4px 0 0;display:flex;justify-content:space-between;align-items:baseline}
+h2 small{font-size:.75rem;font-weight:400;color:var(--muted)}
 .chat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px}
-.log{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
+.log{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto}
 .msg{max-width:85%;padding:9px 12px;border-radius:14px;line-height:1.65;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere}
 .msg.me{align-self:flex-start;background:var(--brand);color:var(--brand-fg);border-bottom-left-radius:4px}
 .msg.her{align-self:flex-end;background:var(--bubble);border-bottom-right-radius:4px}
-.msg.wait{opacity:.6}
+.msg .undo{display:inline-block;margin-top:6px;border:0;background:none;color:var(--late);font:600 .8rem var(--body);cursor:pointer;padding:0}
 .ask{display:flex;gap:8px}
 .ask input{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:1rem var(--body);padding:11px 12px}
 .ask button{border:0;border-radius:12px;background:var(--saffron);color:#2a1d05;font:700 .95rem var(--body);padding:0 16px;cursor:pointer}
-.ask button:disabled{opacity:.5}
 .tips{display:flex;gap:6px;flex-wrap:wrap}
 .tip{border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:6px 11px;font:.8rem var(--body);cursor:pointer;text-align:right}
 .list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:11px 12px;border-top:1px solid var(--line)}
+.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border-top:1px solid var(--line)}
 .item:first-child{border-top:0}
 .item input{width:20px;height:20px;accent-color:var(--brand)}
-.item .t{min-width:0}
-.item .t b{font-weight:500;display:block;overflow-wrap:anywhere}
+.item .t b{font-weight:600;display:block;overflow-wrap:anywhere}
 .item .t span{font-size:.8rem;color:var(--muted)}
 .item.done .t b{text-decoration:line-through;color:var(--muted)}
 .pill{font-size:.72rem;border-radius:999px;padding:3px 9px;white-space:nowrap;border:1px solid currentColor}
 .pill.today{color:var(--warn)} .pill.late{color:var(--late)} .pill.soon{color:var(--ok)} .pill.later{color:var(--muted)}
 .del{border:0;background:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:2px 4px}
 .empty{padding:16px;color:var(--muted);font-size:.88rem;line-height:1.7}
-.foot{font-size:.78rem;color:var(--muted);line-height:1.7;text-align:center}
-.fld{border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:1rem var(--body);padding:11px 12px;min-width:0;width:100%;box-sizing:border-box}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+details.box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px 14px}
+details.box summary{cursor:pointer;font-weight:800;padding:12px 0;list-style:none}
+details.box summary::-webkit-details-marker{display:none}
+details.box summary::after{content:"‹";float:left;transition:transform .2s;color:var(--muted)}
+details.box[open] summary::after{transform:rotate(-90deg)}
+.set{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:.92rem}
+.set small{display:block;color:var(--muted);font-size:.75rem}
+.set input[type=time],.set select{border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font:.9rem var(--body);padding:7px 8px;max-width:150px}
+.set input[type=range]{width:130px}
+.sw{position:relative;width:46px;height:28px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.sw span{position:absolute;inset:0;background:var(--line);border-radius:28px;transition:.2s;cursor:pointer}
+.sw span::before{content:"";position:absolute;width:22px;height:22px;top:3px;right:3px;background:#fff;border-radius:50%;transition:.2s}
+.sw input:checked+span{background:var(--ok)} .sw input:checked+span::before{transform:translateX(-18px)}
+.btn2{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;font:600 .88rem var(--body);padding:9px 12px;cursor:pointer}
+.howto{font-size:.88rem;line-height:1.9;padding:4px 0 12px}
+.howto ol{margin:4px 0;padding-inline-start:20px}
+.howto code{direction:ltr;unicode-bidi:embed;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.85rem}
+.form2{display:grid;gap:8px;padding:6px 0 12px}
+.fld{border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:1rem var(--body);padding:11px 12px;min-width:0;width:100%}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .chips2{display:flex;gap:14px;font-size:.92rem}
-.chips2 input{accent-color:var(--brand)}
-button:focus-visible,input:focus-visible{outline:2px solid var(--saffron);outline-offset:2px}
-@media (max-width:380px){.brief{grid-template-columns:1fr 1fr 1fr}.stat b{font-size:1.25rem}}
+.foot{font-size:.78rem;color:var(--muted);line-height:1.7;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translateX(-50%) translateY(20px);opacity:0;background:var(--fg);color:var(--bg);
+  padding:10px 16px;border-radius:12px;font-size:.88rem;transition:.25s;pointer-events:none;max-width:90vw;text-align:center;z-index:9}
+.toast.show{opacity:1;transform:translateX(-50%)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--saffron);outline-offset:2px}
 </style>
 </head>
 <body>
 
 <div class="wrap">
-  <section class="hero">
-    <svg viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r="48" fill="#e0a43a"/>
-      <path d="M18 98c2-22 15-34 32-34s30 12 32 34z" fill="#0b3a45"/>
-      <path d="M26 54c0-22 10-36 24-36s24 14 24 36c0 8-3 14-6 18H32c-3-4-6-10-6-18z" fill="#f4ede0"/>
-      <ellipse cx="50" cy="50" rx="15" ry="18" fill="#c99272"/>
-      <path d="M35 46c2-12 8-18 15-18s13 6 15 18c-4-6-9-9-15-9s-11 3-15 9z" fill="#f4ede0"/>
-      <circle cx="44" cy="50" r="1.8" fill="#2a1d14"/><circle cx="56" cy="50" r="1.8" fill="#2a1d14"/>
-      <path d="M45 58q5 4 10 0" stroke="#7a3f2c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-      <rect x="60" y="74" width="16" height="12" rx="2" fill="#fdf8ef" transform="rotate(-10 68 80)"/>
-      <path d="M62 77h11M62 80h8" stroke="#0e4d5c" stroke-width="1.2" transform="rotate(-10 68 80)"/>
-    </svg>
-    <div>
-      <div class="date" id="today"></div>
-      <h1>ريم</h1>
-      <p id="greet">سكرتيرتك الخاصة يا سالم. سجّل موعدك أو طلب زبون وأنا أرتبه لك.</p>
+  <section class="hero" id="hero">
+    <div class="date" id="today"></div>
+    <div class="avatar" aria-hidden="true">
+      <svg viewBox="0 0 100 100">
+        <defs>
+          <radialGradient id="g1" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#f6c766"/><stop offset="1" stop-color="#c98a22"/></radialGradient>
+          <radialGradient id="g2" cx="45%" cy="40%" r="70%"><stop offset="0" stop-color="#ddb091"/><stop offset="1" stop-color="#b57d5d"/></radialGradient>
+          <clipPath id="cc"><circle cx="50" cy="50" r="48"/></clipPath>
+        </defs>
+        <g clip-path="url(#cc)">
+        <circle cx="50" cy="50" r="48" fill="url(#g1)"/>
+        <path d="M18 98c2-22 15-34 32-34s30 12 32 34z" fill="#0b3a45"/>
+        <path d="M26 54c0-22 10-36 24-36s24 14 24 36c0 8-3 14-6 18H32c-3-4-6-10-6-18z" fill="#f4ede0"/>
+        <ellipse cx="50" cy="50" rx="15" ry="18" fill="url(#g2)"/>
+        <path d="M35 46c2-12 8-18 15-18s13 6 15 18c-4-6-9-9-15-9s-11 3-15 9z" fill="#f4ede0"/>
+        <g id="eyes"><circle cx="44" cy="50" r="1.8" fill="#2a1d14"/><circle cx="56" cy="50" r="1.8" fill="#2a1d14"/></g>
+        <path id="mouth" d="M45 58q5 4 10 0" stroke="#7a3f2c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <rect x="60" y="74" width="16" height="12" rx="2" fill="#fdf8ef" transform="rotate(-10 68 80)"/>
+        <path d="M62 77h11M62 80h8" stroke="#0e4d5c" stroke-width="1.2" transform="rotate(-10 68 80)"/>
+        </g>
+        <circle cx="50" cy="50" r="47.5" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/>
+      </svg>
     </div>
+    <h1>ريم</h1>
+    <p id="greet">سكرتيرتك الخاصة يا سالم</p>
+    <button class="mic" id="micBtn" type="button" aria-label="كلّم ريم">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+      <span id="micTxt">كلّم ريم</span>
+    </button>
+    <div class="heard" id="heard"></div>
   </section>
 
   <div class="brief">
@@ -104,21 +147,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--saffron);outlin
     <div class="stat late"><b id="sLate">0</b><span>متأخرة</span></div>
   </div>
 
-  <h2>أضف لريم</h2>
-  <form class="chat" id="add">
-    <div class="chips2">
-      <label><input type="radio" name="type" value="appt" checked> موعد</label>
-      <label><input type="radio" name="type" value="task"> طلب / شغل</label>
-    </div>
-    <input id="title" class="fld" type="text" placeholder="مثلًا: تصوير عرس في السيب" required aria-label="العنوان">
-    <div class="two">
-      <input id="date" class="fld" type="date" aria-label="التاريخ">
-      <input id="time" class="fld" type="time" aria-label="الوقت">
-    </div>
-    <input id="client" class="fld" type="text" placeholder="اسم الزبون (اختياري)" aria-label="الزبون">
-    <div class="ask"><button id="go" type="submit" style="flex:1;padding:12px">سجّل</button><button type="button" id="briefBtn" style="background:var(--bubble);color:var(--fg)">ملخص يومي</button></div>
+  <div class="chat">
     <div class="log" id="log" aria-live="polite"></div>
-  </form>
+    <form class="ask" id="askForm">
+      <input id="askIn" type="text" placeholder="اكتب لريم… مثلًا: ذكريني بكرة الساعة 5 العصر أتصل بأحمد" aria-label="اكتب لريم" autocomplete="off">
+      <button type="submit">أرسل</button>
+    </form>
+    <div class="tips" id="tips"></div>
+  </div>
 
   <h2>المواعيد <small id="apptCount"></small></h2>
   <div class="list" id="appts"></div>
@@ -126,106 +162,515 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--saffron);outlin
   <h2>الطلبات والشغل <small id="taskCount"></small></h2>
   <div class="list" id="tasks"></div>
 
-  <p class="foot" id="foot">البيانات محفوظة على جهازك فقط.</p>
+  <details class="box">
+    <summary>➕ إضافة يدوية</summary>
+    <form class="form2" id="add">
+      <div class="chips2">
+        <label><input type="radio" name="type" value="appt" checked> موعد</label>
+        <label><input type="radio" name="type" value="task"> طلب / شغل</label>
+      </div>
+      <input id="title" class="fld" type="text" placeholder="مثلًا: تصوير عرس في السيب" required aria-label="العنوان">
+      <div class="two">
+        <input id="date" class="fld" type="date" aria-label="التاريخ">
+        <input id="time" class="fld" type="time" aria-label="الوقت">
+      </div>
+      <input id="client" class="fld" type="text" placeholder="اسم الزبون (اختياري)" aria-label="الزبون">
+      <button class="mic" type="submit" style="margin:0;width:100%">سجّل</button>
+    </form>
+  </details>
+
+  <details class="box" id="setBox">
+    <summary>⚙️ إعدادات ريم</summary>
+    <div class="set"><div>إعلان الساعة<small>إشعار كل ساعة بالوقت</small></div><label class="sw"><input type="checkbox" data-k="hourly"><span></span></label></div>
+    <div class="set"><div>من الساعة</div><select data-k="hFrom"></select></div>
+    <div class="set"><div>إلى الساعة</div><select data-k="hTo"></select></div>
+    <div class="set"><div>تذكير الوجبات<small>الريوق والغدا والعشا</small></div><label class="sw"><input type="checkbox" data-k="meals"><span></span></label></div>
+    <div class="set"><div>الريوق</div><input type="time" data-k="breakfast"></div>
+    <div class="set"><div>الغدا</div><input type="time" data-k="lunch"></div>
+    <div class="set"><div>العشا</div><input type="time" data-k="dinner"></div>
+    <div class="set"><div>ملخص الصبح</div><input type="time" data-k="am"></div>
+    <div class="set"><div>ملخص المسا<small>مواعيد بكرة والمتأخر</small></div><input type="time" data-k="pm"></div>
+    <div class="set"><div>تذكير قبل الموعد</div><select data-k="lead"><option value="5">5 دقائق</option><option value="10">10 دقائق</option><option value="15">ربع ساعة</option><option value="30">نص ساعة</option><option value="60">ساعة</option></select></div>
+    <div class="set"><div>صوت ريم</div><select data-k="voice" id="voiceSel"><option value="">الصوت الافتراضي</option></select></div>
+    <div class="set"><div>سرعة الكلام</div><input type="range" min="0.6" max="1.3" step="0.05" data-k="rate"></div>
+    <div class="set"><div>ريم تتكلم<small>ترد عليك بالصوت</small></div><label class="sw"><input type="checkbox" data-k="voiceOn"><span></span></label></div>
+    <div class="set"><button class="btn2" type="button" id="testNotif">🔔 إشعار تجريبي</button><button class="btn2" type="button" id="testVoice">🗣️ اسمع صوتها</button></div>
+    <div class="set" style="display:block">
+      <div style="font-weight:800;margin-bottom:4px">📲 «يا سيري، ريم»</div>
+      <div class="howto">
+        <ol>
+          <li>افتح تطبيق <b>الاختصارات (Shortcuts)</b> واضغط <b>+</b></li>
+          <li>أضف إجراء <b>فتح الروابط (Open URLs)</b> واكتب الرابط: <code>reem://talk</code></li>
+          <li>سمِّ الاختصار <b>ريم</b> واحفظه</li>
+          <li>الحين قول: <b>«يا سيري، ريم»</b> وتنفتح ريم وتسمعك على طول 🎙️</li>
+        </ol>
+        <button class="btn2" type="button" id="copyUrl">انسخ الرابط</button>
+      </div>
+    </div>
+    <div class="set"><div>نسخة احتياطية<small>انقل مواعيدك وطلباتك</small></div><div style="display:flex;gap:6px"><button class="btn2" type="button" id="exportBtn">نسخ</button><button class="btn2" type="button" id="importBtn">لصق</button></div></div>
+  </details>
+
+  <p class="foot">كل شي محفوظ على جوالك، وريم تشتغل بدون إنترنت.<br>© سالم الجابري — مسقط، سلطنة عُمان</p>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
-const $=id=>document.getElementById(id);
-const AR=new Intl.DateTimeFormat('ar-OM',{weekday:'long',day:'numeric',month:'long'});
-const ART=new Intl.DateTimeFormat('ar-OM',{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
-const ARD=new Intl.DateTimeFormat('ar-OM',{weekday:'short',day:'numeric',month:'short'});
-$('today').textContent=AR.format(new Date());
+const $ = id => document.getElementById(id);
+const Cap = window.Capacitor;
+const isNative = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+const plug = n => isNative ? (Cap.Plugins[n] || (Cap.registerPlugin && Cap.registerPlugin(n))) : null;
+const LN = plug('LocalNotifications'), TTS = plug('TextToSpeech'), STT = plug('SpeechRecognition'), APP = plug('App'), HAP = plug('Haptics');
 
-let items=[]; let store=null; let sample=null;
-const LS='reem-items';
-function lsLoad(){try{return JSON.parse(localStorage.getItem(LS)||'[]')}catch(e){return[]}}
-function lsSave(){try{localStorage.setItem(LS,JSON.stringify(items))}catch(e){}}
-items=lsLoad();
+const fDay = new Intl.DateTimeFormat('ar-u-nu-latn', { weekday:'long', day:'numeric', month:'long' });
+const fShort = new Intl.DateTimeFormat('ar-u-nu-latn', { weekday:'short', day:'numeric', month:'short' });
+const fTime = new Intl.DateTimeFormat('ar-u-nu-latn', { hour:'numeric', minute:'2-digit' });
+function toast(t){ const e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('show'), 2600); }
 
-const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const startOf=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
+/* ---------------- data ---------------- */
+const LS = 'reem-items', LSS = 'reem-settings';
+const load = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; }catch(e){ return d; } };
+const keep = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+let items = load(LS, []);
+const DEF = { hourly:true, hFrom:7, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, voice:'', rate:0.95, voiceOn:true };
+let S = Object.assign({}, DEF, load(LSS, {}));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const startOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const dayDiff = d => Math.round((startOf(d) - startOf(new Date())) / 864e5);
+
 function when(it){
-  if(!it.due)return null;
-  const d=new Date(it.due); if(isNaN(d))return null;
-  const t0=startOf(new Date()), dd=startOf(d), diff=(dd-t0)/864e5;
-  if(!it.done && d<new Date() && (it.type==='task'||diff<0))return{cls:'late',txt:'متأخر'};
-  if(diff===0)return{cls:'today',txt:'اليوم'};
-  if(diff===1)return{cls:'soon',txt:'بكرة'};
-  if(diff>1&&diff<7)return{cls:'soon',txt:'هالأسبوع'};
-  return{cls:'later',txt:diff<0?'مضى':'لاحقًا'};
+  if(!it.due) return null;
+  const d = new Date(it.due); if(isNaN(d)) return null;
+  const diff = dayDiff(d);
+  if(!it.done && ((it.allDay && diff < 0) || (!it.allDay && d < new Date())) && (it.type === 'task' || diff < 0)) return { cls:'late', txt:'متأخر' };
+  if(diff === 0) return { cls:'today', txt:'اليوم' };
+  if(diff === 1) return { cls:'soon', txt:'بكرة' };
+  if(diff > 1 && diff < 7) return { cls:'soon', txt:'هالأسبوع' };
+  return { cls:'later', txt: diff < 0 ? 'مضى' : 'لاحقًا' };
 }
 function fmt(it){
-  if(!it.due)return'بدون موعد';
-  const d=new Date(it.due); if(isNaN(d))return'';
-  return it.allDay?ARD.format(d):ART.format(d);
+  if(!it.due) return 'بدون موعد';
+  const d = new Date(it.due); if(isNaN(d)) return '';
+  return it.allDay ? fShort.format(d) : fShort.format(d) + ' · ' + fTime.format(d);
 }
+function spokenWhen(d, allDay){
+  const diff = dayDiff(d);
+  const day = diff === 0 ? 'اليوم' : diff === 1 ? 'بكرة' : diff === 2 ? 'بعد بكرة' : fDay.format(d);
+  return allDay ? day : day + ' الساعة ' + clock(d);
+}
+function clock(d){
+  const h = d.getHours(), m = d.getMinutes(), h12 = h % 12 || 12;
+  const part = h < 4 ? 'بالليل' : h < 12 ? 'الصبح' : h < 15 ? 'الظهر' : h < 18 ? 'العصر' : h < 19 ? 'المغرب' : 'بالليل';
+  const mm = m === 0 ? '' : m === 30 ? ' ونص' : m === 15 ? ' وربع' : m === 45 ? null : m === 1 ? ' ودقيقة' : m === 2 ? ' ودقيقتين' : m <= 10 ? ' و' + m + ' دقائق' : ' و' + m + ' دقيقة';
+  if(mm === null) return ((h12 % 12) + 1) + ' إلا ربع ' + part;
+  return h12 + mm + ' ' + part;
+}
+
+/* ---------------- list rendering ---------------- */
 function row(it){
-  const w=when(it);
-  const el=document.createElement('div');el.className='item'+(it.done?' done':'');
-  const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!it.done;cb.id='c-'+it.id;cb.setAttribute('aria-label','تم');
-  cb.onchange=()=>save({...it,done:cb.checked});
-  const t=document.createElement('div');t.className='t';
-  const b=document.createElement('b');b.textContent=it.title;
-  const s=document.createElement('span');s.textContent=[fmt(it),it.client,it.place].filter(Boolean).join(' · ');
-  t.append(b,s);
-  const end=document.createElement('div');end.style.cssText='display:flex;gap:4px;align-items:center';
-  if(w&&!it.done){const p=document.createElement('span');p.className='pill '+w.cls;p.textContent=w.txt;end.append(p)}
-  const x=document.createElement('button');x.className='del';x.textContent='×';x.setAttribute('aria-label','حذف');
-  x.onclick=()=>remove(it.id);end.append(x);
-  el.append(cb,t,end);return el;
+  const w = when(it);
+  const el = document.createElement('div'); el.className = 'item' + (it.done ? ' done' : '');
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!it.done; cb.setAttribute('aria-label', 'تم');
+  cb.onchange = () => save({ ...it, done: cb.checked });
+  const t = document.createElement('div'); t.className = 't';
+  const b = document.createElement('b'); b.textContent = it.title;
+  const s = document.createElement('span'); s.textContent = [fmt(it), it.client].filter(Boolean).join(' · ');
+  t.append(b, s);
+  const end = document.createElement('div'); end.style.cssText = 'display:flex;gap:4px;align-items:center';
+  if(w && !it.done){ const p = document.createElement('span'); p.className = 'pill ' + w.cls; p.textContent = w.txt; end.append(p); }
+  const x = document.createElement('button'); x.className = 'del'; x.textContent = '×'; x.setAttribute('aria-label', 'حذف');
+  x.onclick = () => remove(it.id); end.append(x);
+  el.append(cb, t, end); return el;
 }
 function render(){
-  const sorted=[...items].sort((a,b)=>(a.done-b.done)||((a.due?new Date(a.due):9e15)-(b.due?new Date(b.due):9e15)));
-  const ap=sorted.filter(i=>i.type==='appt'), tk=sorted.filter(i=>i.type!=='appt');
-  const fill=(box,arr,emptyTxt)=>{box.replaceChildren();if(!arr.length){const e=document.createElement('div');e.className='empty';e.textContent=emptyTxt;box.append(e)}else arr.forEach(i=>box.append(row(i)))};
-  fill($('appts'),ap,'ما عندك مواعيد. أضف أول موعد من الخانة فوق.');
-  fill($('tasks'),tk,'ما في طلبات مفتوحة. سجّل أي طلب زبون مع موعد التسليم.');
-  const t0=startOf(new Date()).getTime();
-  $('sToday').textContent=ap.filter(i=>!i.done&&i.due&&startOf(i.due).getTime()===t0).length;
-  $('sOpen').textContent=tk.filter(i=>!i.done).length;
-  $('sLate').textContent=items.filter(i=>!i.done&&when(i)?.cls==='late').length;
-  $('apptCount').textContent=ap.filter(i=>!i.done).length?ap.filter(i=>!i.done).length+' قادم':'';
-  $('taskCount').textContent=tk.filter(i=>!i.done).length?tk.filter(i=>!i.done).length+' مفتوح':'';
+  const sorted = [...items].sort((a, b) => (a.done - b.done) || ((a.due ? new Date(a.due) : 9e15) - (b.due ? new Date(b.due) : 9e15)));
+  const ap = sorted.filter(i => i.type === 'appt'), tk = sorted.filter(i => i.type !== 'appt');
+  const fill = (box, arr, e) => { box.replaceChildren(); if(!arr.length){ const d = document.createElement('div'); d.className = 'empty'; d.textContent = e; box.append(d); } else arr.forEach(i => box.append(row(i))); };
+  fill($('appts'), ap, 'ما عندك مواعيد. قول لريم: «عندي موعد بكرة الساعة 10 الصبح تصوير منتج»');
+  fill($('tasks'), tk, 'ما في طلبات مفتوحة. قول لريم: «سجلي طلب تصميم شعار لمطعم البحر التسليم الخميس»');
+  $('sToday').textContent = ap.filter(i => !i.done && i.due && dayDiff(i.due) === 0).length;
+  $('sOpen').textContent = tk.filter(i => !i.done).length;
+  $('sLate').textContent = items.filter(i => !i.done && when(i)?.cls === 'late').length;
+  const na = ap.filter(i => !i.done).length, nt = tk.filter(i => !i.done).length;
+  $('apptCount').textContent = na ? na + ' قادم' : '';
+  $('taskCount').textContent = nt ? nt + ' مفتوح' : '';
 }
-async function save(it){
-  const i=items.findIndex(x=>x.id===it.id); if(i>=0)items[i]=it; else items.push(it);
-  render(); lsSave();
-  if(store){try{await store.doc(it.id).set(it)}catch(e){}}
+function persist(){ keep(LS, items); render(); scheduleAll(); }
+function save(it){ const i = items.findIndex(x => x.id === it.id); if(i >= 0) items[i] = it; else items.push(it); persist(); }
+function remove(id){ items = items.filter(x => x.id !== id); persist(); }
+
+/* ---------------- voice out ---------------- */
+let voices = [];
+async function loadVoices(){
+  try{
+    if(TTS){ const r = await TTS.getSupportedVoices(); voices = (r.voices || []).map((v, i) => ({ i, name:v.name, lang:v.lang })); }
+    else if(window.speechSynthesis){ voices = speechSynthesis.getVoices().map((v, i) => ({ i, name:v.name, lang:v.lang })); }
+  }catch(e){ voices = []; }
+  const ar = voices.filter(v => /^ar/i.test(v.lang));
+  const sel = $('voiceSel'); sel.length = 1;
+  ar.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')'; sel.append(o); });
+  sel.value = S.voice || '';
 }
-async function remove(id){
-  items=items.filter(x=>x.id!==id); render(); lsSave();
-  if(store){try{await store.doc(id).delete()}catch(e){}}
+if(window.speechSynthesis) speechSynthesis.onvoiceschanged = loadVoices;
+function speakable(t){ return String(t).replace(/[•\n]+/g, '، ').replace(/[\u{1F300}-\u{1FAFF}☀-➿️‍]/gu, '').replace(/\s+/g, ' ').trim(); }
+async function say(text){
+  if(!S.voiceOn || !text) return;
+  const hero = $('hero'), t = speakable(text);
+  hero.classList.add('speaking');
+  try{
+    if(TTS){
+      const v = voices.find(x => x.name === S.voice);
+      await TTS.stop().catch(() => {});
+      await TTS.speak(Object.assign({ text:t, lang:'ar-SA', rate:S.rate, pitch:1.05, volume:1, category:'playback' }, v ? { voice:v.i } : {}));
+    } else if(window.speechSynthesis){
+      speechSynthesis.cancel();
+      await new Promise(res => {
+        const u = new SpeechSynthesisUtterance(t); u.lang = 'ar-SA'; u.rate = S.rate; u.pitch = 1.05;
+        const v = speechSynthesis.getVoices().find(x => x.name === S.voice) || speechSynthesis.getVoices().find(x => /^ar/i.test(x.lang));
+        if(v) u.voice = v;
+        u.onend = u.onerror = res; speechSynthesis.speak(u); setTimeout(res, 20000);
+      });
+    }
+  }catch(e){}
+  hero.classList.remove('speaking');
 }
 
-function bubble(txt,who,wait){const m=document.createElement('div');m.className='msg '+who+(wait?' wait':'');m.textContent=txt;$('log').append(m);$('log').scrollTop=$('log').scrollHeight;return m}
+/* ---------------- conversation ---------------- */
+function bubble(txt, who, undo){
+  const m = document.createElement('div'); m.className = 'msg ' + who; m.textContent = txt;
+  if(undo){ const u = document.createElement('button'); u.className = 'undo'; u.type = 'button'; u.textContent = '↩︎ تراجع'; u.onclick = () => { undo(); u.remove(); reply('تمام، رجعتها مثل ما كانت.'); }; m.append(document.createElement('br'), u); }
+  $('log').append(m); $('log').scrollTop = $('log').scrollHeight; return m;
+}
+function reply(text, undo){ bubble(text, 'her', undo); $('greet').textContent = text.split('\n')[0]; return say(text); }
+function hear(text){ text = String(text || '').trim(); if(!text) return; bubble(text, 'me'); const r = understand(text); if(r) reply(r.text, r.undo); }
 
+/* ---------------- understanding (offline, Gulf Arabic) ---------------- */
+const norm = s => String(s)
+  .replace(/[ً-ْـ]/g, '')
+  .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+  .replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[؟?!.,،]/g, ' ').replace(/\s+/g, ' ').trim();
+const WORDN = [ [/^(واحده?|وحده)$/, 1], [/^(اثنين|ثنتين|اثنتين)$/, 2], [/^ثلاث(ه)?$/, 3], [/^اربع(ه)?$/, 4], [/^خمس(ه)?$/, 5], [/^ست(ه)?$/, 6],
+  [/^سبع(ه)?$/, 7], [/^ثمان(ي|يه)?$/, 8], [/^تسع(ه)?$/, 9], [/^عشر(ه)?$/, 10], [/^(احدعش|حدعش|احد عشر|احدي عشر|حداعش)$/, 11], [/^(اثنعش|اثنا عشر|اثني عشر|طنعش|ثنعش)$/, 12] ];
+const numOf = w => { if(/^\d+$/.test(w)) return +w; for(const [re, n] of WORDN) if(re.test(w)) return n; return null; };
+const NUMW = '(\\d{1,2}|واحده?|وحده|اثنين|ثنتين|ثلاثه?|اربعه?|خمسه?|سته?|سبعه?|ثمانيه?|ثماني|ثمان|تسعه?|عشره?|احدعش|حدعش|حداعش|اثنعش|طنعش|ثنعش)';
+const DAYS = ['الاحد','الاثنين','الثلاثاء','الاربعاء','الخميس','الجمعه','السبت'];
+const DAYRE = '(الاحد|الاثنين|الثنين|الثلاثاء|الثلاثا|الاربعاء|الاربعا|الخميس|الجمعه|السبت)';
+const MONTHS = ['يناير','فبراير','مارس','ابريل','مايو','يونيو','يوليو','اغسطس','سبتمبر','اكتوبر','نوفمبر','ديسمبر'];
 
-function brief(){
-  const t0=startOf(new Date()).getTime();
-  const today=items.filter(i=>!i.done&&i.due&&startOf(i.due).getTime()===t0);
-  const late=items.filter(i=>!i.done&&when(i)?.cls==='late');
-  if(!today.length&&!late.length)return'يومك فاضي، ما عندك مواعيد ولا شي متأخر. وقت ممتاز تشتغل على مشاريعك.';
-  let s='';
-  if(today.length)s+='اليوم عندك:\n'+today.map(i=>'• '+i.title+(i.due&&!i.allDay?' الساعة '+new Intl.DateTimeFormat('ar-OM',{hour:'numeric',minute:'2-digit'}).format(new Date(i.due)):'')).join('\n');
-  if(late.length)s+=(s?'\n\n':'')+'ومتأخر عليك:\n'+late.map(i=>'• '+i.title).join('\n');
+function parseWhen(src){
+  let s = ' ' + norm(src) + ' ', date = null, hasDay = false, hasTime = false, h = null, m = 0, rel = null;
+  const cut = re => { const mm = s.match(re); if(mm){ s = s.replace(mm[0], ' '); } return mm; };
+  let x;
+  if((x = cut(/\sبعد\s+(ربع ساعه|نص ساعه|ساعه ونص|ساعتين|ساعه|دقيقتين|دقيقه|(\d+)\s*(دقيقه|دقايق|دقائق|دقيقة|ساعه|ساعات|ساعة))(?=\s)/))){
+    const w = x[1]; let mins = 0;
+    if(w === 'ربع ساعه') mins = 15; else if(w === 'نص ساعه') mins = 30; else if(w === 'ساعه ونص') mins = 90; else if(w === 'ساعتين') mins = 120;
+    else if(w === 'ساعه') mins = 60; else if(w === 'دقيقتين') mins = 2; else if(w === 'دقيقه') mins = 1;
+    else mins = (+x[2]) * (/ساع/.test(x[3]) ? 60 : 1);
+    rel = new Date(Math.round((Date.now() + mins * 60000) / 60000) * 60000);
+  }
+  if((x = cut(/\s(بعد بكره|بعد باكر)(?=\s)/))){ date = startOf(new Date(Date.now() + 2 * 864e5)); hasDay = true; }
+  else if((x = cut(/\s(بكره|باكر|باچر|غدا|بكرا)(?=\s)/))){ date = startOf(new Date(Date.now() + 864e5)); hasDay = true; }
+  else if((x = cut(/\s(اليوم|الليله|هاليوم)(?=\s)/))){ date = startOf(new Date()); hasDay = true; }
+  if(!hasDay && (x = cut(/\sبعد\s+(\d+|يومين|ثلاث|اربع|خمس|اسبوع)\s*(ايام|يوم)?(?=\s)/))){
+    const n = x[1] === 'يومين' ? 2 : x[1] === 'اسبوع' ? 7 : (numOf(x[1]) || +x[1]); date = startOf(new Date(Date.now() + n * 864e5)); hasDay = true;
+  }
+  if(!hasDay && (x = cut(new RegExp('\\s(?:يوم\\s+)?' + DAYRE + '(\\s+الجاي|\\s+الياي|\\s+القادم)?(?=\\s)')))){
+    const map = { 'الثنين':'الاثنين', 'الثلاثا':'الثلاثاء', 'الاربعا':'الاربعاء' };
+    const idx = DAYS.indexOf(map[x[1]] || x[1]); let d = startOf(new Date()), add = (idx - d.getDay() + 7) % 7;
+    if(add === 0 || x[2]) add = add === 0 ? 7 : add;
+    date = new Date(d.getTime() + add * 864e5); hasDay = true;
+  }
+  if(!hasDay && (x = cut(new RegExp('\\s(\\d{1,2})\\s*(?:من\\s+)?(?:شهر\\s+)?(' + MONTHS.join('|') + '|\\d{1,2})(?=\\s)')))){
+    const mo = isNaN(+x[2]) ? MONTHS.indexOf(x[2]) : (+x[2] - 1);
+    if(mo >= 0 && mo < 12){ const now = new Date(); let d = new Date(now.getFullYear(), mo, +x[1]); if(d < startOf(now)) d.setFullYear(d.getFullYear() + 1); date = d; hasDay = true; }
+  }
+  // clock time
+  x = cut(new RegExp('\\s(?:الساعه|ساعه|الساعة|ع الساعه|على الساعه)\\s+' + NUMW + '(?:[:.](\\d{2}))?(\\s+و\\s*نص|\\s+ونص|\\s+و\\s*ربع|\\s+وربع|\\s+الا\\s*ربع|\\s+و\\s*(\\d{1,2})\\s*(?:دقيقه|دقايق)?)?(?=\\s)'))
+   || cut(new RegExp('\\s(\\d{1,2})[:.](\\d{2})()(?=\\s)'));
+  if(x){
+    h = numOf(x[1]); m = x[2] ? +x[2] : 0;
+    const q = x[3] || '';
+    if(/نص/.test(q)) m = 30; else if(/الا\s*ربع/.test(q)){ h = h - 1; m = 45; } else if(/ربع/.test(q)) m = 15; else if(x[4]) m = +x[4];
+    hasTime = h != null;
+  }
+  let period = null;
+  if((x = cut(/\s(الصبح|الصباح|صباحا|صباحاً|الفجر|ص)(?=\s)/))) period = 'am';
+  else if((x = cut(/\s(الظهر|ظهرا|الضهر)(?=\s)/))) period = 'noon';
+  else if((x = cut(/\s(العصر|عصرا|المغرب|المسا|المساء|مساء|مسا|بالليل|الليل|م)(?=\s)/))) period = 'pm';
+  let due = null, allDay = false;
+  if(rel){ due = rel; }
+  else if(hasTime){
+    if(period === 'pm' && h < 12) h += 12;
+    else if(period === 'noon' && h < 6) h += 12;
+    else if(period === 'am' && h === 12) h = 0;
+    else if(!period && h >= 1 && h <= 6) h += 12;            // "الساعة 5" = العصر غالبًا
+    const base = date || startOf(new Date());
+    due = new Date(base); due.setHours(h, m, 0, 0);
+    if(!date && due < new Date()){ if(!period && h < 12 && h + 12 > new Date().getHours()){ due.setHours(h + 12); } if(due < new Date()) due = new Date(due.getTime() + 864e5); }
+  } else if(date){ due = date; allDay = true; }
+  return { due, allDay, rest: original(src, s.replace(/\s+/g, ' ').trim()), hasAny: !!(rel || hasTime || hasDay) };
+}
+// map the leftover normalized words back to the words as the user said/typed them (keeps ة and أ)
+function light(s){ return String(s).replace(/[\u064B-\u0652\u0640]/g, '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[؟?!.,،]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function original(src, restNorm){
+  const ow = light(src).split(' '), nw = ow.map(norm), out = []; let k = 0;
+  restNorm.split(' ').filter(Boolean).forEach(w => { const i = nw.indexOf(w, k); if(i >= 0){ out.push(ow[i]); k = i + 1; } else out.push(w); });
+  return out.join(' ');
+}
+function cleanTitle(t){
+  let s = ' ' + t + ' ';
+  const drop = [/\s(يا\s+)?ريم(ي)?(?=\s)/g, /\s(ذكريني|ذكرني|سجلي|سجل|ضيفي|ضيف|حطي|اكتبي|عندي|عندنا|لي|[أا]ن|[أا]ني|[إا]ني|[أا]نه|ب[أا]ن|ب)(?=\s)/g,
+    /\s(موعد|طلب|شغل|مهم[ةه])(?=\s)/g, /\s(لو سمحتي|لو سمحت|من فضلك|الله يخليك|ممكن)(?=\s)/g, /\s(التسليم|تسليم[هة]|موعد التسليم)(?=\s*$)/g];
+  drop.forEach(re => s = s.replace(re, ' '));
+  s = s.replace(/^\s*(و|في|على)\s+/, ' ').replace(/\s+(في|على|يوم|و)\s*$/, ' ').replace(/\s+/g, ' ').trim();
   return s;
 }
-
-function addItem(e){
-  e.preventDefault();
-  const type=document.querySelector('input[name=type]:checked').value;
-  const title=$('title').value.trim(); if(!title)return;
-  const d=$('date').value, t=$('time').value;
-  let due=null, allDay=false;
-  if(d){due=new Date(d+'T'+(t||'00:00')).toISOString(); allDay=!t}
-  save({id:uid(),type,title,due,allDay,client:$('client').value.trim(),place:'',done:false,created:Date.now()});
-  bubble('تمام يا سالم، سجلت: '+title+(due?' — '+fmt({due,allDay}):''),'her');
-  $('title').value='';$('client').value='';$('time').value='';
+function findItem(q){
+  const nq = norm(q).split(' ').filter(w => w.length > 2 && !/^(موعد|طلب|شغل|حق|مال|الموعد|الطلب)$/.test(w));
+  if(!nq.length) return null;
+  let best = null, score = 0;
+  items.filter(i => !i.done).forEach(i => { const ti = norm(i.title + ' ' + (i.client || '')); const sc = nq.filter(w => ti.includes(w) || ti.includes(w.replace(/^ال/, ''))).length / nq.length; if(sc > score){ score = sc; best = i; } });
+  return score >= 0.5 ? best : null;
 }
-$('add').addEventListener('submit',addItem);
-$('briefBtn').addEventListener('click',()=>bubble(brief(),'her'));
-$('date').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+function dayBrief(offset){
+  const target = offset || 0;
+  const list = items.filter(i => !i.done && i.due && dayDiff(i.due) === target).sort((a, b) => new Date(a.due) - new Date(b.due));
+  const late = target === 0 ? items.filter(i => !i.done && when(i)?.cls === 'late') : [];
+  const label = target === 0 ? 'اليوم' : target === 1 ? 'بكرة' : fDay.format(new Date(Date.now() + target * 864e5));
+  if(!list.length && !late.length) return target === 0 ? 'يومك فاضي يا سالم، ما عندك مواعيد ولا شي متأخر. وقت ممتاز تشتغل على مشاريعك 👌' : label + ' ما عندك شي مسجل.';
+  let s = '';
+  if(list.length) s += label + ' عندك ' + (list.length === 1 ? 'شي واحد' : list.length === 2 ? 'شيئين' : list.length + ' أشياء') + ':\n' + list.map(i => '• ' + i.title + (i.allDay ? '' : ' الساعة ' + clock(new Date(i.due)))).join('\n');
+  if(late.length) s += (s ? '\n\n' : '') + 'ومتأخر عليك:\n' + late.map(i => '• ' + i.title).join('\n');
+  return s;
+}
+function understand(text){
+  const n = ' ' + norm(text) + ' ';
+  const has = re => re.test(n);
+  // greetings & small talk
+  if(has(/^\s*(يا\s+)?ريم\s*$/)) return { text:'هلا سالم، آمرني 🌷' };
+  if(has(/(السلام عليكم|سلام عليكم)/) && n.length < 30) return { text:'وعليكم السلام ورحمة الله يا سالم، كيف أقدر أخدمك؟' };
+  if(has(/^\s*(يا\s+ريم\s+)?(صباح الخير|صباح النور)/)) return { text:'صباح النور والسرور يا سالم ☀️\n' + dayBrief(0) };
+  if(has(/^\s*(يا\s+ريم\s+)?(مساء الخير|مسا الخير)/)) return { text:'مساء النور يا سالم 🌙\n' + dayBrief(1) };
+  if(has(/^\s*(يا\s+ريم\s+)?(هلا|مرحبا|اهلين|هلا والله)\s*$/)) return { text:'هلا والله يا سالم، آمرني.' };
+  if(has(/(كيفك|كيف حالك|شخبارك|شلونك)/) && n.length < 30) return { text:'بخير الحمد لله، دامك بخير. شو تبيني أسوي لك؟' };
+  if(has(/(مشكوره|شكرا|يعطيك العافيه|تسلمين|ما قصرتي)/) && n.length < 35) return { text:'العفو يا سالم، في الخدمة دايمًا 🌷' };
+  if(has(/(شو تقدرين|وش تقدرين|ايش تسوين|شو تسوين|ساعديني|مساعده)/)) return { text:'أقدر أسجل لك مواعيد وطلبات الزبائن وأذكرك فيها، وأقول لك برنامج يومك، وكم الساعة والتاريخ.\nجرب تقول: «ذكريني بكرة الساعة 5 العصر أتصل بأحمد» أو «شو عندي اليوم؟» أو «خلصت تصميم المطعم».' };
+  // time & date
+  if(has(/(كم|ايش|شو|وش)\s+الساعه|الساعه\s+(كم|الحين)/) && !has(/(ذكر|سجل|موعد)/)) return { text:'الساعة الحين ' + clock(new Date()) + '.' };
+  if(has(/(التاريخ|كم\s+اليوم|اليوم\s+كم|اي\s+يوم|ايش\s+اليوم|شو\s+اليوم|وش\s+اليوم)/) && !has(/عندي/)) return { text:'اليوم ' + fDay.format(new Date()) + '.' };
+  // briefs
+  if(has(/(شو|وش|ايش|ويش)\s+(عندي|برنامجي|وراي|جدولي)|مواعيدي|برنامج\s*(اليوم|بكره)|ملخص|جدول(ي)?\s+(اليوم|بكره)/)){
+    const off = has(/بعد\s+بكره/) ? 2 : has(/(بكره|باكر|غدا)/) ? 1 : 0;
+    return { text: dayBrief(off) };
+  }
+  if(has(/(الطلبات|طلباتي|الشغل المفتوح|شغلي)/) && !has(/(سجل|ضيف|حط|ذكر)/)){
+    const open = items.filter(i => i.type !== 'appt' && !i.done);
+    return { text: open.length ? 'عندك ' + open.length + ' طلبات مفتوحة:\n' + open.map(i => '• ' + i.title + (i.due ? ' — ' + spokenWhen(new Date(i.due), i.allDay) : '')).join('\n') : 'ما عندك طلبات مفتوحة 👌' };
+  }
+  // mark done
+  let x = n.match(/\s(خلصت|خلصنا|انتهيت من|انتهيت|سلمت|سويت|تم)\s+(.+)/);
+  if(x){ const it = findItem(x[2]); if(it){ const prev = { ...it }; save({ ...it, done:true }); return { text:'كفو يا سالم 👏 علّمت «' + it.title + '» إنه خلص.', undo:() => save(prev) }; }
+    return { text:'ما لقيت شي بهالاسم في القائمة. قول لي جزء من اسمه بالضبط.' }; }
+  // delete
+  x = n.match(/\s(الغي|الغي|امسحي|امسح|احذفي|احذف|كنسلي|شيلي)\s+(.+)/);
+  if(x){ const it = findItem(x[2]); if(it){ const prev = { ...it }; remove(it.id); return { text:'تمام، شلت «' + it.title + '».', undo:() => save(prev) }; }
+    return { text:'ما لقيت موعد أو طلب بهالاسم.' }; }
+  // add
+  const trigger = has(/\s(ذكريني|ذكرني|سجلي|سجل|ضيفي|حطي|اكتبي|عندي|عندنا|موعد|طلب)\s/);
+  const w = parseWhen(text);
+  if(trigger || w.hasAny){
+    const title = cleanTitle(w.rest);
+    if(!title || title.length < 2) return { text:'تمام، بس شو أسجل؟ قول مثلًا: «ذكريني بكرة الساعة 5 العصر أتصل بأحمد».' };
+    const type = /(طلب|تسليم|تصميم|شعار|مونتاج|طباعه|اعلان|بوستر|فيديو|فاتوره)/.test(n) && !/موعد/.test(n) ? 'task' : 'appt';
+    let due = w.due, allDay = w.allDay;
+    if(!due && type === 'task'){ due = null; }
+    const it = { id:uid(), type, title, due: due ? due.toISOString() : null, allDay, client:'', done:false, created:Date.now() };
+    save(it);
+    const whenTxt = due ? ' ' + spokenWhen(due, allDay) : '';
+    const remind = due && !allDay ? (due - Date.now() > (+S.lead) * 60000 ? '، وبذكرك قبلها ب' + leadText() : '، وبذكرك في وقته') : due ? '، وبذكرك الصبح ذاك اليوم' : '';
+    return { text:'أبشر يا سالم ✍️ سجلت ' + (type === 'task' ? 'طلب' : 'موعد') + ': «' + title + '»' + whenTxt + remind + '.', undo:() => remove(it.id) };
+  }
+  return { text:'ما فهمت عليك زين 🙏 جرب تقول: «ذكريني بكرة الساعة 5 أتصل بأحمد» أو «شو عندي اليوم؟»' };
+}
+function leadText(){ const l = +S.lead; return l === 15 ? 'ربع ساعة' : l === 30 ? 'نص ساعة' : l === 60 ? 'ساعة' : l + ' دقائق'; }
+
+/* ---------------- listening ---------------- */
+let listening = false, sttTimer = null, lastHeard = '', sttHandle = null, webRec = null;
+function setListening(on){
+  listening = on; $('hero').classList.toggle('listening', on);
+  $('micTxt').textContent = on ? 'أسمعك… (اضغط للإيقاف)' : 'كلّم ريم';
+  if(!on) $('heard').textContent = '';
+}
+async function finishListening(){
+  if(!listening) return;
+  clearTimeout(sttTimer); setListening(false);
+  try{ if(STT) await STT.stop(); }catch(e){}
+  try{ if(webRec) webRec.stop(); }catch(e){}
+  const t = lastHeard; lastHeard = '';
+  if(t) hear(t); else reply('ما سمعت شي، جرب مرة ثانية 🎙️');
+}
+async function listen(){
+  if(listening){ return finishListening(); }
+  try{ if(TTS) await TTS.stop(); else if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+  $('hero').classList.remove('speaking');
+  lastHeard = '';
+  if(STT){
+    try{
+      const av = await STT.available(); if(!av.available){ return reply('التعرّف على الصوت مب متاح في جوالك. تقدر تكتب لي بدال.'); }
+      let p = await STT.checkPermissions(); if(p.speechRecognition !== 'granted') p = await STT.requestPermissions();
+      if(p.speechRecognition !== 'granted') return reply('أحتاج إذن الميكروفون والتعرّف على الكلام. فعّلها من الإعدادات ← ريم.');
+      if(sttHandle){ try{ await sttHandle.remove(); }catch(e){} }
+      sttHandle = await STT.addListener('partialResults', d => {
+        const t = (d.matches && d.matches[0]) || ''; if(!t) return;
+        lastHeard = t; $('heard').textContent = t;
+        clearTimeout(sttTimer); sttTimer = setTimeout(finishListening, 1600);
+      });
+      setListening(true);
+      if(HAP) HAP.impact({ style:'MEDIUM' }).catch(() => {});
+      sttTimer = setTimeout(finishListening, 8000);
+      STT.start({ language:'ar-SA', partialResults:true, popup:false, maxResults:1 }).catch(() => { if(listening) finishListening(); });
+    }catch(e){ setListening(false); reply('ما قدرت أشغل الميكروفون. تقدر تكتب لي بدال.'); }
+    return;
+  }
+  const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!R){ $('askIn').focus(); return toast('المتصفح ما يدعم الكلام — اكتب لريم'); }
+  webRec = new R(); webRec.lang = 'ar-SA'; webRec.interimResults = true; webRec.continuous = false;
+  webRec.onresult = e => { lastHeard = Array.from(e.results).map(r => r[0].transcript).join(' '); $('heard').textContent = lastHeard; clearTimeout(sttTimer); sttTimer = setTimeout(finishListening, 1600); };
+  webRec.onend = () => { if(listening) finishListening(); };
+  webRec.onerror = () => { if(listening) finishListening(); };
+  setListening(true); sttTimer = setTimeout(finishListening, 8000);
+  try{ webRec.start(); }catch(e){ setListening(false); }
+}
+
+/* ---------------- notifications (iPhone app) ---------------- */
+const ID = { hour:100, meal:140, brief:200, item:1000, test:9999 };
+function hm(str){ const [h, m] = String(str || '0:0').split(':').map(Number); return { h:h || 0, m:m || 0 }; }
+function hourLine(h){ const d = new Date(); d.setHours(h, 0, 0, 0); return 'الساعة الحين ' + clock(d); }
+let schedTimer = null;
+function scheduleAll(){ clearTimeout(schedTimer); schedTimer = setTimeout(doSchedule, 400); }
+async function doSchedule(){
+  if(!LN) return;
+  try{
+    let p = await LN.checkPermissions(); if(p.display !== 'granted') p = await LN.requestPermissions(); if(p.display !== 'granted') return;
+    const pend = await LN.getPending(); const old = (pend.notifications || []).filter(x => x.id !== ID.test).map(x => ({ id:x.id }));
+    if(old.length) await LN.cancel({ notifications: old });
+    const list = [], now = Date.now();
+    // hourly time announcement (repeats every day)
+    if(S.hourly){
+      for(let h = +S.hFrom; h <= +S.hTo && h < 24; h++) list.push({ id: ID.hour + h, title:'🕐 ريم', body: hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } });
+    }
+    // meals (repeat daily)
+    if(S.meals){
+      [['breakfast','☕ وقت الريوق يا سالم','لا تنسى تفطر زين، يومك طويل 🌷'], ['lunch','🍛 وقت الغدا','قوم تغدّى وريّح شوي'], ['dinner','🍽️ وقت العشا','تعشّى خفيف، وصحتك أهم']].forEach(([k, t, b], i) => {
+        const { h, m } = hm(S[k]); list.push({ id: ID.meal + i, title:t, body:b, schedule:{ on:{ hour:h, minute:m }, repeats:true } });
+      });
+    }
+    // morning & evening briefs for the coming 6 days (content depends on the day)
+    for(let d = 0; d < 6; d++){
+      const a = hm(S.am), b = hm(S.pm);
+      const am = startOf(new Date(now + d * 864e5)); am.setHours(a.h, a.m, 0, 0);
+      const pm = startOf(new Date(now + d * 864e5)); pm.setHours(b.h, b.m, 0, 0);
+      if(am > now) list.push({ id: ID.brief + d * 2, title:'☀️ صباح الخير يا سالم', body: briefFor(d, true), schedule:{ at: am } });
+      if(pm > now) list.push({ id: ID.brief + d * 2 + 1, title:'🌙 ملخص المسا', body: briefFor(d + 1, false), schedule:{ at: pm } });
+    }
+    // appointments & orders (nearest first, keep the total under iOS's 64 pending limit)
+    const room = 62 - list.length;
+    const evs = [];
+    items.filter(i => !i.done && i.due).forEach(i => {
+      const d = new Date(i.due);
+      if(i.allDay){ const at = new Date(d); at.setHours(9, 0, 0, 0); if(at > now) evs.push({ at, title: (i.type === 'task' ? '📦 تسليم اليوم: ' : '📅 اليوم: ') + i.title, body:'لا تنساه يا سالم 🌷' }); return; }
+      const pre = new Date(d.getTime() - (+S.lead) * 60000);
+      if(pre > now) evs.push({ at:pre, title:'⏰ بعد ' + leadText() + ': ' + i.title, body:'الساعة ' + clock(d) + (i.client ? ' — ' + i.client : '') });
+      if(d > now) evs.push({ at:d, title:(i.type === 'task' ? '📦 موعد التسليم: ' : '📅 الحين: ') + i.title, body:'الساعة ' + clock(d) });
+    });
+    evs.sort((a, b) => a.at - b.at).slice(0, Math.max(0, room)).forEach((e, k) => list.push({ id: ID.item + k, title:e.title, body:e.body, schedule:{ at:e.at } }));
+    if(list.length) await LN.schedule({ notifications: list });
+  }catch(e){ console.warn('schedule', e); }
+}
+function briefFor(offset, morning){
+  const list = items.filter(i => !i.done && i.due && dayDiff(i.due) === offset).sort((a, b) => new Date(a.due) - new Date(b.due));
+  const label = morning ? 'اليوم' : 'بكرة';   // seen from the day the notification arrives
+  if(!list.length) return morning ? 'ما عندك مواعيد مسجلة ' + label + '. يوم موفق 👌' : 'ما عندك شي مسجل ' + label + '. تصبح على خير 🌙';
+  return label + ' عندك: ' + list.slice(0, 4).map(i => i.title + (i.allDay ? '' : ' (' + clock(new Date(i.due)) + ')')).join('، ') + (list.length > 4 ? ' وغيرها' : '');
+}
+
+/* ---------------- settings ---------------- */
+(function(){
+  const box = $('setBox');
+  ['hFrom','hTo'].forEach(k => { const sel = box.querySelector('[data-k="' + k + '"]'); for(let h = 0; h < 24; h++){ const d = new Date(); d.setHours(h, 0, 0, 0); const o = document.createElement('option'); o.value = h; o.textContent = clock(d); sel.append(o); } });
+  box.querySelectorAll('[data-k]').forEach(el => {
+    const k = el.dataset.k;
+    if(el.type === 'checkbox') el.checked = !!S[k]; else el.value = S[k];
+    el.addEventListener('change', () => {
+      S[k] = el.type === 'checkbox' ? el.checked : (el.type === 'range' || el.tagName === 'SELECT' && k !== 'voice') ? +el.value : el.value;
+      keep(LSS, S); scheduleAll(); toast('انحفظ ✅');
+    });
+  });
+  $('testVoice').onclick = () => say('هلا سالم، أنا ريم سكرتيرتك. آمرني وأنا حاضرة.');
+  $('testNotif').onclick = async () => {
+    if(!LN) return toast('الإشعارات تشتغل في تطبيق الآيفون');
+    try{ let p = await LN.checkPermissions(); if(p.display !== 'granted') p = await LN.requestPermissions(); if(p.display !== 'granted') return toast('فعّل الإشعارات من الإعدادات ← ريم');
+      await LN.schedule({ notifications:[{ id:ID.test, title:'🌷 ريم', body:'هذا إشعار تجريبي — الإشعارات شغالة تمام يا سالم', schedule:{ at:new Date(Date.now() + 5000) } }] });
+      toast('بيوصلك إشعار بعد ٥ ثواني'); }catch(e){ toast('تعذر إرسال الإشعار'); }
+  };
+  $('copyUrl').onclick = () => { navigator.clipboard?.writeText('reem://talk').then(() => toast('انسخ ✅ الصقه في الاختصار'), () => toast('reem://talk')); };
+  $('exportBtn').onclick = () => { navigator.clipboard?.writeText(JSON.stringify(items)).then(() => toast('نسخت ' + items.length + ' عنصر ✅'), () => toast('تعذر النسخ')); };
+  $('importBtn').onclick = async () => {
+    let txt = ''; try{ txt = await navigator.clipboard.readText(); }catch(e){ txt = prompt('الصق النسخة هنا:') || ''; }
+    try{ const arr = JSON.parse(txt); if(!Array.isArray(arr)) throw 0; const ids = new Set(items.map(i => i.id)); arr.forEach(i => { if(i && i.id && i.title && !ids.has(i.id)) items.push(i); }); persist(); toast('تمت الإضافة ✅'); }
+    catch(e){ toast('النص المنسوخ مب نسخة ريم'); }
+  };
+})();
+
+/* ---------------- manual add & typing ---------------- */
+$('add').addEventListener('submit', e => {
+  e.preventDefault();
+  const type = document.querySelector('input[name=type]:checked').value, title = $('title').value.trim(); if(!title) return;
+  const d = $('date').value, t = $('time').value; let due = null, allDay = false;
+  if(d){ due = new Date(d + 'T' + (t || '00:00')).toISOString(); allDay = !t; }
+  save({ id:uid(), type, title, due, allDay, client:$('client').value.trim(), done:false, created:Date.now() });
+  reply('تمام يا سالم، سجلت: ' + title + (due ? ' — ' + spokenWhen(new Date(due), allDay) : ''));
+  $('title').value = ''; $('client').value = ''; $('time').value = '';
+});
+$('date').value = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+$('askForm').addEventListener('submit', e => { e.preventDefault(); const v = $('askIn').value; $('askIn').value = ''; hear(v); });
+$('micBtn').addEventListener('click', listen);
+['شو عندي اليوم؟', 'ذكريني بكرة الساعة 5 العصر أتصل بأحمد', 'سجلي طلب تصميم شعار التسليم الخميس', 'كم الساعة؟'].forEach(t => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'tip'; b.textContent = t; b.onclick = () => hear(t); $('tips').append(b);
+});
+
+/* ---------------- opened by Siri / shortcut: reem://talk  or  reem://say?q=… ---------------- */
+function handleUrl(u){
+  if(!u) return;
+  let url; try{ url = new URL(u); }catch(e){ return; }
+  const q = url.searchParams.get('q');
+  if(q){ hear(q); return; }
+  if(/talk|listen/.test(url.host + url.pathname) || url.searchParams.has('talk')){
+    say('هلا سالم، آمرني').then(() => setTimeout(listen, 150));
+  }
+}
+
+/* ---------------- start ---------------- */
+function greetLine(){
+  const h = new Date().getHours();
+  return (h < 12 ? 'صباح الخير' : h < 18 ? 'مساء الخير' : 'مساء النور') + ' يا سالم 🌷';
+}
+$('today').textContent = fDay.format(new Date());
+$('greet').textContent = greetLine();
 render();
+loadVoices();
+if(isNative){
+  document.documentElement.classList.add('native-app');
+  scheduleAll();
+  if(LN) LN.addListener('localNotificationActionPerformed', a => { const n = a.notification || {}; const t = [n.title, n.body].filter(Boolean).join('. '); if(t){ bubble(t, 'her'); say(t); } });
+  if(APP){
+    APP.addListener('appUrlOpen', e => handleUrl(e.url));
+    APP.getLaunchUrl().then(r => r && r.url && handleUrl(r.url)).catch(() => {});
+    APP.addListener('resume', () => { render(); scheduleAll(); });
+  }
+} else {
+  // web: same deep-link via ?talk or ?q=
+  if(location.search) handleUrl('reem://talk/' + location.search);
+}
 </script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "appId": "com.salemaljabri.reem",
+  "appName": "ريم",
+  "webDir": "www",
+  "backgroundColor": "#0e4d5c",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0e4d5c"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "iconColor": "#e0a43a"
+    }
+  }
+}

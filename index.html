@@ -101,6 +101,11 @@ details.box[open] summary::after{transform:rotate(-90deg)}
 .fld{border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:1rem var(--body);padding:11px 12px;min-width:0;width:100%}
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .chips2{display:flex;gap:14px;font-size:.92rem}
+.pRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.pRow:first-child{border-top:0} .pRow b{display:block;font-weight:600} .pRow span{font-size:.78rem;color:var(--muted);direction:ltr;display:inline-block}
+.ic{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:7px 9px;font-size:1rem;cursor:pointer;line-height:1}
+.tpl label{display:block;font-weight:700;font-size:.88rem;margin-bottom:4px}
+.tpl textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:.92rem var(--body);padding:9px 10px;resize:vertical}
 .foot{font-size:.78rem;color:var(--muted);line-height:1.7;text-align:center}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translateX(-50%) translateY(20px);opacity:0;background:var(--fg);color:var(--bg);
   padding:10px 16px;border-radius:12px;font-size:.88rem;transition:.25s;pointer-events:none;max-width:90vw;text-align:center;z-index:9}
@@ -159,6 +164,21 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
       <input id="client" class="fld" type="text" placeholder="اسم الزبون (اختياري)" aria-label="الزبون">
       <button class="mic" type="submit" style="margin:0;width:100%">سجّل</button>
     </form>
+  </details>
+
+  <details class="box" id="peopleBox">
+    <summary>📇 أرقامي <small id="peopleCount" style="font-weight:400;color:var(--muted)"></small></summary>
+    <div class="form2">
+      <div class="two"><input id="pName" class="fld" type="text" placeholder="الاسم (مثلًا: أحمد)" aria-label="الاسم"><input id="pPhone" class="fld" type="tel" inputmode="tel" placeholder="الرقم" aria-label="الرقم" dir="ltr"></div>
+      <button class="btn2" type="button" id="pAdd">➕ احفظ الرقم</button>
+      <div class="list" id="peopleList"></div>
+      <div class="howto" style="padding:0">أو قول لريم: «احفظي رقم أحمد 99123456»، وبعدها «اتصلي بأحمد» أو «ارسلي لأحمد إن طلبه جاهز».</div>
+    </div>
+  </details>
+
+  <details class="box" id="tplBox">
+    <summary>✉️ رسائل جاهزة للزبائن</summary>
+    <div class="form2" id="tplList"></div>
   </details>
 
   <details class="box" id="setBox">
@@ -429,6 +449,75 @@ function dayBrief(offset){
   if(late.length) s += (s ? '\n\n' : '') + 'ومتأخر عليك:\n' + late.map(i => '• ' + i.title).join('\n');
   return s;
 }
+/* ---------------- contacts, messages, calls & maps ---------------- */
+const LSP = 'reem-people', LST = 'reem-templates';
+let people = load(LSP, []);
+const TPL_DEF = {
+  ready:   { name:'طلبك جاهز',   text:'هلا {الاسم}، طلبك جاهز ✅ تقدر تستلمه متى ما ناسبك. — سالم الجابري' },
+  pay:     { name:'تذكير بالدفع', text:'هلا {الاسم}، حبيت أذكرك بالمبلغ المتبقي. شاكر لك تعاونك 🌷 — سالم الجابري' },
+  confirm: { name:'تأكيد موعد',   text:'هلا {الاسم}، أأكد لك موعدنا {الموعد}. نشوفك على خير 🤝 — سالم الجابري' },
+  thanks:  { name:'شكر',          text:'شكرًا {الاسم} على ثقتك 🌷 سعيد بالتعامل معك، وبالخدمة دايمًا. — سالم الجابري' }
+};
+let TPL = Object.assign({}, TPL_DEF, load(LST, {}));
+function normPhone(p){
+  let d = String(p || '').replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/[^\d+]/g, '');
+  if(d.startsWith('+')) d = d.slice(1); if(d.startsWith('00')) d = d.slice(2);
+  if(/^[79]\d{7}$/.test(d) || /^2\d{7}$/.test(d)) d = '968' + d;     // Omani 8-digit numbers
+  return d;
+}
+function savePeople(){ keep(LSP, people); renderPeople(); }
+function findPerson(q){
+  const w = norm(q).replace(/^(ب|ل|على|عل|لـ)\s*/, '').replace(/^(ب|ل)(?=\S)/, '');
+  if(!w) return null;
+  let best = null;
+  people.forEach(p => { const n = norm(p.name); if(n === w || w.startsWith(n) || n.startsWith(w) || w.includes(n) || ('ال' + w) === n) if(!best || n.length > norm(best.name).length) best = p; });
+  return best;
+}
+function openUrl(url){ try{ window.location.href = url; }catch(e){ window.open(url, '_blank'); } }
+function callPerson(p){ openUrl('tel:+' + normPhone(p.phone)); }
+function waPerson(p, text){ openUrl('whatsapp://send?phone=' + normPhone(p.phone) + (text ? '&text=' + encodeURIComponent(text) : '')); }
+function fillTpl(key, p){
+  const next = items.filter(i => !i.done && i.due && new Date(i.due) > new Date() && p && norm((i.client || '') + ' ' + i.title).includes(norm(p.name))).sort((a, b) => new Date(a.due) - new Date(b.due))[0];
+  return TPL[key].text.replace(/\{الاسم\}/g, p ? p.name : '').replace(/\{الموعد\}/g, next ? spokenWhen(new Date(next.due), next.allDay) : 'القادم');
+}
+function tplFromText(n){
+  if(/جاهز|خلص|استلام|يستلم/.test(n)) return 'ready';
+  if(/دفع|فلوس|مبلغ|حساب|فاتوره|المتبقي/.test(n)) return 'pay';
+  if(/موعد|تاكيد|اكد/.test(n)) return 'confirm';
+  if(/شكر|تشكر/.test(n)) return 'thanks';
+  return null;
+}
+function renderPeople(){
+  const box = $('peopleList'); box.replaceChildren();
+  $('peopleCount').textContent = people.length ? '(' + people.length + ')' : '';
+  if(!people.length){ const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'ما في أرقام محفوظة لسا.'; box.append(e); return; }
+  [...people].sort((a, b) => a.name.localeCompare(b.name, 'ar')).forEach(p => {
+    const r = document.createElement('div'); r.className = 'pRow';
+    const t = document.createElement('div'); const b = document.createElement('b'); b.textContent = p.name; const sp = document.createElement('span'); sp.textContent = '+' + normPhone(p.phone); t.append(b, sp);
+    const mk = (ico, lbl, fn) => { const x = document.createElement('button'); x.type = 'button'; x.className = 'ic'; x.textContent = ico; x.setAttribute('aria-label', lbl); x.onclick = fn; return x; };
+    r.append(t, mk('📞', 'اتصال', () => callPerson(p)), mk('💬', 'واتساب', () => waPerson(p, '')), mk('×', 'حذف', () => { people = people.filter(x => x !== p); savePeople(); toast('انحذف الرقم'); }));
+    box.append(r);
+  });
+}
+function renderTpl(){
+  const box = $('tplList'); box.replaceChildren();
+  Object.keys(TPL).forEach(k => {
+    const w = document.createElement('div'); w.className = 'tpl';
+    const l = document.createElement('label'); l.textContent = TPL[k].name;
+    const ta = document.createElement('textarea'); ta.value = TPL[k].text;
+    ta.onchange = () => { TPL[k] = { name:TPL[k].name, text:ta.value }; keep(LST, TPL); toast('انحفظت الرسالة ✅'); };
+    w.append(l, ta); box.append(w);
+  });
+  const h = document.createElement('div'); h.className = 'howto'; h.style.padding = '0';
+  h.textContent = 'اكتب {الاسم} عشان ينحط اسم الزبون، و{الموعد} لأقرب موعد له. وقول لريم مثلًا: «ارسلي لأحمد إن طلبه جاهز».'; box.append(h);
+}
+$('pAdd').onclick = () => {
+  const name = $('pName').value.trim(), phone = $('pPhone').value.trim();
+  if(!name || normPhone(phone).length < 8) return toast('اكتب الاسم والرقم صح');
+  const ex = people.find(p => norm(p.name) === norm(name)); if(ex) ex.phone = phone; else people.push({ id:uid(), name, phone });
+  savePeople(); $('pName').value = ''; $('pPhone').value = ''; toast('انحفظ رقم ' + name + ' ✅');
+};
+
 function understand(text){
   const n = ' ' + norm(text) + ' ';
   const has = re => re.test(n);
@@ -440,7 +529,7 @@ function understand(text){
   if(has(/^\s*(يا\s+ريم\s+)?(هلا|مرحبا|اهلين|هلا والله)\s*$/)) return { text:'هلا والله يا سالم، آمرني.' };
   if(has(/(كيفك|كيف حالك|شخبارك|شلونك)/) && n.length < 30) return { text:'بخير الحمد لله، دامك بخير. شو تبيني أسوي لك؟' };
   if(has(/(مشكوره|شكرا|يعطيك العافيه|تسلمين|ما قصرتي)/) && n.length < 35) return { text:'العفو يا سالم، في الخدمة دايمًا 🌷' };
-  if(has(/(شو تقدرين|وش تقدرين|ايش تسوين|شو تسوين|ساعديني|مساعده)/)) return { text:'أقدر أسجل لك مواعيد وطلبات الزبائن وأذكرك فيها، وأقول لك برنامج يومك، وكم الساعة والتاريخ.\nجرب تقول: «ذكريني بكرة الساعة 5 العصر أتصل بأحمد» أو «شو عندي اليوم؟» أو «خلصت تصميم المطعم».' };
+  if(has(/(شو تقدرين|وش تقدرين|ايش تسوين|شو تسوين|ساعديني|مساعده)/)) return { text:'أقدر أسجل لك مواعيد وطلبات الزبائن وأذكرك فيها، وأقول لك برنامج يومك، وأتصل أو أرسل واتساب للزبائن، وأفتح لك الخريطة.\nجرب تقول: «ذكريني بكرة الساعة 5 العصر أتصل بأحمد» أو «شو عندي اليوم؟» أو «خلصت تصميم المطعم».' };
   // time & date
   if(has(/(كم|ايش|شو|وش)\s+الساعه|الساعه\s+(كم|الحين)/) && !has(/(ذكر|سجل|موعد)/)) return { text:'الساعة الحين ' + clock(new Date()) + '.' };
   if(has(/(التاريخ|كم\s+اليوم|اليوم\s+كم|اي\s+يوم|ايش\s+اليوم|شو\s+اليوم|وش\s+اليوم)/) && !has(/عندي/)) return { text:'اليوم ' + fDay.format(new Date()) + '.' };
@@ -452,6 +541,41 @@ function understand(text){
   if(has(/(الطلبات|طلباتي|الشغل المفتوح|شغلي)/) && !has(/(سجل|ضيف|حط|ذكر)/)){
     const open = items.filter(i => i.type !== 'appt' && !i.done);
     return { text: open.length ? 'عندك ' + open.length + ' طلبات مفتوحة:\n' + open.map(i => '• ' + i.title + (i.due ? ' — ' + spokenWhen(new Date(i.due), i.allDay) : '')).join('\n') : 'ما عندك طلبات مفتوحة 👌' };
+  }
+  // save a phone number: «احفظي رقم أحمد 99123456»
+  let c = n.match(/\s(احفظي|احفظ|سجلي|سجل|ضيفي|ضيف)\s+(رقم|نمره|تلفون)\s+(.+?)\s+([+\d][\d\s-]{6,})\s*$/);
+  if(c){
+    const name = original(text, c[3]).trim(), phone = c[4].replace(/\s|-/g, '');
+    const ex = people.find(p => norm(p.name) === norm(name)); if(ex) ex.phone = phone; else people.push({ id:uid(), name, phone });
+    savePeople(); return { text:'تمام، حفظت رقم ' + name + ' ✅ تقدر تقول: «اتصلي ب' + name + '».' };
+  }
+  // call: «اتصلي بأحمد» / «دقي على أحمد»
+  c = n.match(/^\s*(يا\s+ريم\s+)?(اتصلي|اتصل|دقي|دق|كلمي|ارني|رني)\s+(علي|على|ب|عل)?\s*(.+)$/);
+  if(c && !has(/(ذكر|بكره|الساعه|بعد)/)){
+    const p = findPerson(c[4]);
+    if(!p) return { text:'ما عندي رقم ' + original(text, c[4]) + '. قول: «احفظي رقم ' + original(text, c[4]) + '» وبعده الرقم.' };
+    setTimeout(() => callPerson(p), 1600);
+    return { text:'أبشر، أتصل ب' + p.name + ' الحين 📞' };
+  }
+  // WhatsApp: «ارسلي لأحمد إن طلبه جاهز» / «واتساب لأحمد قول له ...»
+  c = n.match(/^\s*(يا\s+ريم\s+)?(ارسلي|ارسل|راسلي|راسل|واتساب|واتس|ابعثي|طرشي)\s+(رساله\s+|واتساب\s+)?(ل|الى|لـ)?\s*(\S+)\s*(.*)$/);
+  if(c){
+    let p = findPerson(c[5]) || findPerson(c[5] + ' ' + (c[6].split(' ')[0] || ''));
+    if(!p) return { text:'ما عندي رقم ' + original(text, c[5]) + '. احفظه من «📇 أرقامي» أو قول: «احفظي رقم ' + original(text, c[5]) + '» وبعده الرقم.' };
+    const rest = c[6].replace(/^(قول(ي)?\s+له|قول(ي)?\s+لها|ان|انه|اني|بان)\s+/, '').trim();
+    const key = tplFromText(rest);
+    const msg = key ? fillTpl(key, p) : (rest ? original(text, rest) : '');
+    setTimeout(() => waPerson(p, msg), 1600);
+    return { text: msg ? 'تمام، بفتح لك الواتساب مع ' + p.name + ' والرسالة جاهزة، بس اضغط إرسال 💬\n«' + msg + '»' : 'بفتح لك محادثة ' + p.name + ' في الواتساب 💬' };
+  }
+  // maps: «وديني لمطعم البحر» / «وين مكان ...»
+  c = n.match(/^\s*(يا\s+ريم\s+)?(وديني|ودني|وصليني|خذيني|افتحي الخريطه|الخريطه|الطريق)\s+(الى|ل|لـ|على|عند|لين)?\s*(.+)$/) || n.match(/\s(وين مكان|وين يقع|وين)\s+(.+)$/);
+  if(c){
+    const place = original(text, (c[4] || c[2] || '').trim()).trim();
+    if(place && !/^(مواعيدي|عندي)/.test(place)){
+      setTimeout(() => openUrl('https://maps.apple.com/?q=' + encodeURIComponent(place)), 1500);
+      return { text:'أبشر، بفتح لك الخريطة على «' + place + '» 🗺️' };
+    }
   }
   // mark done
   let x = n.match(/\s(خلصت|خلصنا|انتهيت من|انتهيت|سلمت|سويت|تم)\s+(.+)/);
@@ -621,7 +745,7 @@ $('add').addEventListener('submit', e => {
 $('date').value = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 $('askForm').addEventListener('submit', e => { e.preventDefault(); const v = $('askIn').value; $('askIn').value = ''; hear(v); });
 $('micBtn').addEventListener('click', listen);
-['شو عندي اليوم؟', 'ذكريني بكرة الساعة 5 العصر أتصل بأحمد', 'سجلي طلب تصميم شعار التسليم الخميس', 'كم الساعة؟'].forEach(t => {
+['شو عندي اليوم؟', 'ذكريني بكرة الساعة 5 العصر أتصل بأحمد', 'سجلي طلب تصميم شعار التسليم الخميس', 'ارسلي لأحمد إن طلبه جاهز', 'وديني لمول عمان'].forEach(t => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'tip'; b.textContent = t; b.onclick = () => hear(t); $('tips').append(b);
 });
 
@@ -644,6 +768,8 @@ function greetLine(){
 $('today').textContent = fDay.format(new Date());
 $('greet').textContent = greetLine();
 render();
+renderPeople();
+renderTpl();
 loadVoices();
 if(isNative){
   document.documentElement.classList.add('native-app');

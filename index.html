@@ -36,11 +36,13 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);direc
 .hero .date{font-size:.8rem;opacity:.8}
 .avatar{position:relative;width:170px;height:170px;margin:10px auto 6px}
 .avatar::before{content:"";position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,rgba(240,184,79,.45),transparent 65%);opacity:.55;transition:opacity .3s,transform .3s}
-.avatar svg{position:relative;width:100%;height:100%;filter:drop-shadow(0 14px 22px rgba(0,0,0,.35))}
+.avatar img{position:relative;display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;
+  border:4px solid rgba(240,184,79,.9);box-shadow:0 16px 30px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.2)}
 .hero.listening .avatar::before{opacity:1;animation:pulse 1.1s ease-in-out infinite}
-.hero.speaking #mouth{animation:talk .22s ease-in-out infinite alternate;transform-origin:50px 58px}
+.hero.speaking .avatar::before{opacity:.9;animation:pulse .5s ease-in-out infinite}
+.hero.speaking .avatar img{animation:talk .9s ease-in-out infinite}
 @keyframes pulse{0%,100%{transform:scale(.94)}50%{transform:scale(1.08)}}
-@keyframes talk{from{transform:scaleY(.6)}to{transform:scaleY(1.9)}}
+@keyframes talk{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
 .hero h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:.5px}
 .hero p{margin:6px 0 0;opacity:.9;line-height:1.6;font-size:.95rem;min-height:1.6em}
 .mic{margin:14px auto 0;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;
@@ -111,27 +113,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
 <div class="wrap">
   <section class="hero" id="hero">
     <div class="date" id="today"></div>
-    <div class="avatar" aria-hidden="true">
-      <svg viewBox="0 0 100 100">
-        <defs>
-          <radialGradient id="g1" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#f6c766"/><stop offset="1" stop-color="#c98a22"/></radialGradient>
-          <radialGradient id="g2" cx="45%" cy="40%" r="70%"><stop offset="0" stop-color="#ddb091"/><stop offset="1" stop-color="#b57d5d"/></radialGradient>
-          <clipPath id="cc"><circle cx="50" cy="50" r="48"/></clipPath>
-        </defs>
-        <g clip-path="url(#cc)">
-        <circle cx="50" cy="50" r="48" fill="url(#g1)"/>
-        <path d="M18 98c2-22 15-34 32-34s30 12 32 34z" fill="#0b3a45"/>
-        <path d="M26 54c0-22 10-36 24-36s24 14 24 36c0 8-3 14-6 18H32c-3-4-6-10-6-18z" fill="#f4ede0"/>
-        <ellipse cx="50" cy="50" rx="15" ry="18" fill="url(#g2)"/>
-        <path d="M35 46c2-12 8-18 15-18s13 6 15 18c-4-6-9-9-15-9s-11 3-15 9z" fill="#f4ede0"/>
-        <g id="eyes"><circle cx="44" cy="50" r="1.8" fill="#2a1d14"/><circle cx="56" cy="50" r="1.8" fill="#2a1d14"/></g>
-        <path id="mouth" d="M45 58q5 4 10 0" stroke="#7a3f2c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-        <rect x="60" y="74" width="16" height="12" rx="2" fill="#fdf8ef" transform="rotate(-10 68 80)"/>
-        <path d="M62 77h11M62 80h8" stroke="#0e4d5c" stroke-width="1.2" transform="rotate(-10 68 80)"/>
-        </g>
-        <circle cx="50" cy="50" r="47.5" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/>
-      </svg>
-    </div>
+    <div class="avatar"><img src="reem.jpg" alt="ريم" width="170" height="170"></div>
     <h1>ريم</h1>
     <p id="greet">سكرتيرتك الخاصة يا سالم</p>
     <button class="mic" id="micBtn" type="button" aria-label="كلّم ريم">

@@ -503,7 +503,7 @@ function understand(text){
   }
   if(has(/(المهام|مهامي|الطلبات|طلباتي|شغلي)/) && !has(/(سجل|ضيف|حط|ذكر)/)){
     const open = items.filter(i => i.type !== 'appt' && !i.done);
-    return { text: open.length ? 'عندك ' + open.length + ' مهام مفتوحة:\n' + open.map(i => '• ' + i.title + (i.due ? ' — ' + spokenWhen(new Date(i.due), i.allDay) : '')).join('\n') : 'ما عندك مهام مفتوحة 👌' };
+    return { text: open.length ? 'عندك ' + (open.length === 1 ? 'مهمة وحدة' : open.length === 2 ? 'مهمتين' : open.length + ' مهام') + ':\n' + open.map(i => '• ' + i.title + (i.due ? ' — ' + spokenWhen(new Date(i.due), i.allDay) : '')).join('\n') : 'ما عندك مهام مفتوحة 👌' };
   }
   // save a phone number: «احفظي رقم أحمد 99123456»
   let c = n.match(/\s(احفظي|احفظ|سجلي|سجل|ضيفي|ضيف)\s+(رقم|نمره|تلفون)\s+(.+?)\s+([+\d][\d\s-]{6,})\s*$/);

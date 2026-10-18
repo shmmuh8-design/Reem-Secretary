@@ -188,7 +188,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
     <div class="set"><div>تذكير قبل الموعد</div><select data-k="lead"><option value="5">5 دقائق</option><option value="10">10 دقائق</option><option value="15">ربع ساعة</option><option value="30">نص ساعة</option><option value="60">ساعة</option></select></div>
     <div class="set"><div>صوت ريم</div><select data-k="voice" id="voiceSel"><option value="">الصوت الافتراضي</option></select></div>
     <div class="set"><div>سرعة الكلام</div><input type="range" min="0.6" max="1.3" step="0.05" data-k="rate"></div>
-    <div class="set"><div>نبرة الصوت<small>حرّكها لليسار لصوت أنعم (أنثوي)</small></div><input type="range" min="0.8" max="2" step="0.05" data-k="pitch"></div>
+    <div class="set"><div>نبرة الصوت<small>مع صوت مريم خلّها في النص</small></div><input type="range" min="0.8" max="2" step="0.05" data-k="pitch"></div>
     <div class="set" style="display:block"><div class="howto" style="padding:0">🎀 <b>تبي صوت بنت حقيقي؟</b> أبل ما تسمح للتطبيقات تستخدم صوت سيري نفسه، بس تقدر تنزّل صوت عربي إضافي:
       <b>الإعدادات ← تسهيلات الاستخدام ← المحتوى المنطوق ← الأصوات ← العربية</b>، نزّل أي صوت جديد، وارجع لريم واختاره من «صوت ريم».</div></div>
     <div class="set"><div>ريم تتكلم<small>ترد عليك بالصوت</small></div><label class="sw"><input type="checkbox" data-k="voiceOn"><span></span></label></div>
@@ -229,7 +229,7 @@ const LS = 'reem-items', LSS = 'reem-settings';
 const load = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; }catch(e){ return d; } };
 const keep = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 let items = load(LS, []);
-const DEF = { hourly:true, hFrom:7, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, voice:'', rate:0.95, pitch:1.4, voiceOn:true };
+const DEF = { hourly:true, hFrom:7, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
 let S = Object.assign({}, DEF, load(LSS, {}));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const startOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
@@ -307,10 +307,11 @@ async function loadVoices(){
   const sel = $('voiceSel'); sel.length = 1;
   ar.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = v.name + ' (' + v.lang + ')'; sel.append(o); });
   // first run: prefer an Arabic voice that is not the male default (Majed / Tarik)
-  if(!S.voice){ const f = ar.find(v => !/maged|majed|ماجد|tarik|طارق/i.test(v.name)); if(f){ S.voice = f.name; keep(LSS, S); } }
+  if(!S.voice || /maged|majed|ماجد/i.test(S.voice)){ const f = ar.find(v => /mariam|maryam|مريم/i.test(v.name)) || ar.find(v => !/maged|majed|ماجد|tarik|طارق/i.test(v.name)); if(f){ S.voice = f.name; keep(LSS, S); } }
   sel.value = S.voice || '';
 }
 if(window.speechSynthesis) speechSynthesis.onvoiceschanged = loadVoices;
+function pitchNow(){ if(S.pitchSet) return +S.pitch || 1; const male = !S.voice || /maged|majed|ماجد|tarik|طارق/i.test(S.voice); return male ? 1.4 : 1.0; }
 function speakable(t){ return String(t).replace(/[•\n]+/g, '، ').replace(/[\u{1F300}-\u{1FAFF}☀-➿️‍]/gu, '').replace(/\s+/g, ' ').trim(); }
 async function say(text){
   if(!S.voiceOn || !text) return;
@@ -320,11 +321,11 @@ async function say(text){
     if(TTS){
       const v = voices.find(x => x.name === S.voice);
       await TTS.stop().catch(() => {});
-      await TTS.speak(Object.assign({ text:t, lang:'ar-SA', rate:S.rate, pitch:+S.pitch || 1.4, volume:1, category:'playback' }, v ? { voice:v.i } : {}));
+      await TTS.speak(Object.assign({ text:t, lang:'ar-SA', rate:S.rate, pitch:pitchNow(), volume:1, category:'playback' }, v ? { voice:v.i } : {}));
     } else if(window.speechSynthesis){
       speechSynthesis.cancel();
       await new Promise(res => {
-        const u = new SpeechSynthesisUtterance(t); u.lang = 'ar-SA'; u.rate = S.rate; u.pitch = Math.min(2, +S.pitch || 1.4);
+        const u = new SpeechSynthesisUtterance(t); u.lang = 'ar-SA'; u.rate = S.rate; u.pitch = Math.min(2, pitchNow());
         const v = speechSynthesis.getVoices().find(x => x.name === S.voice) || speechSynthesis.getVoices().find(x => /^ar/i.test(x.lang));
         if(v) u.voice = v;
         u.onend = u.onerror = res; speechSynthesis.speak(u); setTimeout(res, 20000);
@@ -675,6 +676,8 @@ function briefFor(offset, morning){
     if(el.type === 'checkbox') el.checked = !!S[k]; else el.value = S[k];
     el.addEventListener('change', () => {
       S[k] = el.type === 'checkbox' ? el.checked : (el.type === 'range' || el.tagName === 'SELECT' && k !== 'voice') ? +el.value : el.value;
+      if(k === 'pitch') S.pitchSet = true;
+      if(k === 'voice') S.pitchSet = false;
       keep(LSS, S); scheduleAll(); toast('انحفظ ✅');
     });
   });

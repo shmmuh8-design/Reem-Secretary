@@ -179,6 +179,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
     <div class="set"><div>إعلان الساعة<small>إشعار كل ساعة بالوقت</small></div><label class="sw"><input type="checkbox" data-k="hourly"><span></span></label></div>
     <div class="set"><div>من الساعة</div><select data-k="hFrom"></select></div>
     <div class="set"><div>إلى الساعة</div><select data-k="hTo"></select></div>
+    <div class="set"><div>دلع ريم 🥰<small>«حبيبي، حياتي» في التحيات والتذكيرات</small></div><label class="sw"><input type="checkbox" data-k="love"><span></span></label></div>
+    <div class="set"><div>«وين حبيبي؟»<small>رسالة شوق كل يوم</small></div><input type="time" data-k="miss"></div>
     <div class="set"><div>تذكير الوجبات<small>الريوق والغدا والعشا</small></div><label class="sw"><input type="checkbox" data-k="meals"><span></span></label></div>
     <div class="set"><div>الريوق</div><input type="time" data-k="breakfast"></div>
     <div class="set"><div>الغدا</div><input type="time" data-k="lunch"></div>
@@ -229,7 +231,7 @@ const LS = 'reem-items', LSS = 'reem-settings';
 const load = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; }catch(e){ return d; } };
 const keep = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 let items = load(LS, []);
-const DEF = { hourly:true, hFrom:7, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
+const DEF = { hourly:true, hFrom:7, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, love:true, miss:'16:30', voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
 let S = Object.assign({}, DEF, load(LSS, {}));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const startOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
@@ -492,10 +494,12 @@ function understand(text){
   const n = ' ' + norm(text) + ' ';
   const has = re => re.test(n);
   // greetings & small talk
-  if(has(/^\s*(يا\s+)?ريم\s*$/)) return { text:'هلا سالم، آمرني 🌷' };
+  if(has(/^\s*(يا\s+)?ريم\s*$/)) return { text: S.love ? 'هلا حبيبي، آمرني 🥰' : 'هلا سالم، آمرني 🌷' };
+  if(has(/(تغديت|تعشيت|ريقتي|فطرتي|كليتي)/) && n.length < 40) return { text: S.love ? 'إي حبيبي، وانت لا تنسى نفسك 🥰' : 'الحمد لله، وانت لا تنسى وجبتك 🌷' };
+  if(has(/(احبك|حبيبتي|اشتقت لك|وحشتيني)/) && n.length < 40) return { text: S.love ? 'وأنا أكثر يا حياتي 🥰' : 'تسلم يا سالم 🌷' };
   if(has(/(السلام عليكم|سلام عليكم)/) && n.length < 30) return { text:'وعليكم السلام ورحمة الله يا سالم، كيف أقدر أخدمك؟' };
-  if(has(/^\s*(يا\s+ريم\s+)?(صباح الخير|صباح النور)/)) return { text:'صباح النور والسرور يا سالم ☀️\n' + dayBrief(0) };
-  if(has(/^\s*(يا\s+ريم\s+)?(مساء الخير|مسا الخير)/)) return { text:'مساء النور يا سالم 🌙\n' + dayBrief(1) };
+  if(has(/^\s*(يا\s+ريم\s+)?(صباح الخير|صباح النور)/)) return { text:(S.love ? 'صباح النور حياتي ☀️🥰' : 'صباح النور والسرور يا سالم ☀️') + '\n' + dayBrief(0) };
+  if(has(/^\s*(يا\s+ريم\s+)?(مساء الخير|مسا الخير)/)) return { text:(S.love ? 'مساء النور حبي 🌙🥰' : 'مساء النور يا سالم 🌙') + '\n' + dayBrief(1) };
   if(has(/^\s*(يا\s+ريم\s+)?(هلا|مرحبا|اهلين|هلا والله)\s*$/)) return { text:'هلا والله يا سالم، آمرني.' };
   if(has(/(كيفك|كيف حالك|شخبارك|شلونك)/) && n.length < 30) return { text:'بخير الحمد لله، دامك بخير. شو تبيني أسوي لك؟' };
   if(has(/(مشكوره|شكرا|يعطيك العافيه|تسلمين|ما قصرتي)/) && n.length < 35) return { text:'العفو يا سالم، في الخدمة دايمًا 🌷' };
@@ -623,6 +627,12 @@ async function listen(){
 
 /* ---------------- notifications (iPhone app) ---------------- */
 const ID = { hour:100, meal:140, brief:200, item:1000, test:9999 };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const LOVE = {
+  morning:['صباح الخير حياتي ☀️','صباح الخير حبيبي 🌷','صباح الورد يا حياتي ☀️'],
+  evening:['مساء الخير حبي 🌙','مساء الورد حبيبي 🌙','مساء الخير يا حياتي 🌷'],
+  miss:['وين حبيبي؟ 🥰','وينك حبيبي؟ اشتقت لك 🥰','وين حياتي؟ طمّني عليك 🥰'],
+};
 function hm(str){ const [h, m] = String(str || '0:0').split(':').map(Number); return { h:h || 0, m:m || 0 }; }
 function hourLine(h){ const d = new Date(); d.setHours(h, 0, 0, 0); return 'الساعة الحين ' + clock(d); }
 let schedTimer = null;
@@ -640,17 +650,20 @@ async function doSchedule(){
     }
     // meals (repeat daily)
     if(S.meals){
-      [['breakfast','☕ وقت الريوق يا سالم','لا تنسى تفطر زين، يومك طويل 🌷'], ['lunch','🍛 وقت الغدا','قوم تغدّى وريّح شوي'], ['dinner','🍽️ وقت العشا','تعشّى خفيف، وصحتك أهم']].forEach(([k, t, b], i) => {
+      (S.love ? [['breakfast','☕ ريّقت حبيبي؟','لا تطلع بدون ريوق يا حياتي 🥰'], ['lunch','🍛 تغدّيت حبيبي؟','قوم تغدّى وريّح شوي يا حياتي 🥰'], ['dinner','🍽️ تعشّيت حبيبي؟','تعشّى خفيف، صحتك عندي أهم 🥰']]
+        : [['breakfast','☕ وقت الريوق يا سالم','لا تنسى تفطر زين، يومك طويل 🌷'], ['lunch','🍛 وقت الغدا','قوم تغدّى وريّح شوي'], ['dinner','🍽️ وقت العشا','تعشّى خفيف، وصحتك أهم']]).forEach(([k, t, b], i) => {
         const { h, m } = hm(S[k]); list.push({ id: ID.meal + i, title:t, body:b, schedule:{ on:{ hour:h, minute:m }, repeats:true } });
       });
     }
+    // «وين حبيبي؟» daily
+    if(S.love && S.miss){ const { h, m } = hm(S.miss); list.push({ id: ID.meal + 5, title: pick(LOVE.miss), body:'ريم تسأل عنك 🌷', schedule:{ on:{ hour:h, minute:m }, repeats:true } }); }
     // morning & evening briefs for the coming 6 days (content depends on the day)
     for(let d = 0; d < 6; d++){
       const a = hm(S.am), b = hm(S.pm);
       const am = startOf(new Date(now + d * 864e5)); am.setHours(a.h, a.m, 0, 0);
       const pm = startOf(new Date(now + d * 864e5)); pm.setHours(b.h, b.m, 0, 0);
-      if(am > now) list.push({ id: ID.brief + d * 2, title:'☀️ صباح الخير يا سالم', body: briefFor(d, true), schedule:{ at: am } });
-      if(pm > now) list.push({ id: ID.brief + d * 2 + 1, title:'🌙 ملخص المسا', body: briefFor(d + 1, false), schedule:{ at: pm } });
+      if(am > now) list.push({ id: ID.brief + d * 2, title: S.love ? '☀️ ' + pick(LOVE.morning).replace(/ [☀️🌷]+$/u, '') : '☀️ صباح الخير يا سالم', body: briefFor(d, true), schedule:{ at: am } });
+      if(pm > now) list.push({ id: ID.brief + d * 2 + 1, title: S.love ? '🌙 ' + pick(LOVE.evening).replace(/ [🌙🌷]+$/u, '') + ' — ملخص المسا' : '🌙 ملخص المسا', body: briefFor(d + 1, false), schedule:{ at: pm } });
     }
     // appointments & orders (nearest first, keep the total under iOS's 64 pending limit)
     const room = 62 - list.length;
@@ -684,7 +697,7 @@ function briefFor(offset, morning){
       S[k] = el.type === 'checkbox' ? el.checked : (el.type === 'range' || el.tagName === 'SELECT' && k !== 'voice') ? +el.value : el.value;
       if(k === 'pitch') S.pitchSet = true;
       if(k === 'voice') S.pitchSet = false;
-      keep(LSS, S); scheduleAll(); toast('انحفظ ✅');
+      keep(LSS, S); scheduleAll(); toast('انحفظ ✅'); if(k === 'love') $('greet').textContent = greetLine();
     });
   });
   $('testVoice').onclick = () => say('هلا سالم، أنا ريم سكرتيرتك. آمرني وأنا حاضرة.');
@@ -727,13 +740,14 @@ function handleUrl(u){
   const q = url.searchParams.get('q');
   if(q){ hear(q); return; }
   if(/talk|listen/.test(url.host + url.pathname) || url.searchParams.has('talk')){
-    say('هلا سالم، آمرني').then(() => setTimeout(listen, 150));
+    say(S.love ? 'هلا حبيبي، آمرني' : 'هلا سالم، آمرني').then(() => setTimeout(listen, 150));
   }
 }
 
 /* ---------------- start ---------------- */
 function greetLine(){
   const h = new Date().getHours();
+  if(S.love) return h < 12 ? pick(LOVE.morning) : pick(LOVE.evening);
   return (h < 12 ? 'صباح الخير' : h < 18 ? 'مساء الخير' : 'مساء النور') + ' يا سالم 🌷';
 }
 $('today').textContent = fDay.format(new Date());

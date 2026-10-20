@@ -219,7 +219,7 @@ const $ = id => document.getElementById(id);
 const Cap = window.Capacitor;
 const isNative = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
 const plug = n => isNative ? (Cap.Plugins[n] || (Cap.registerPlugin && Cap.registerPlugin(n))) : null;
-const LN = plug('LocalNotifications'), TTS = plug('TextToSpeech'), STT = plug('SpeechRecognition'), APP = plug('App'), HAP = plug('Haptics');
+const LN = plug('LocalNotifications'), TTS = plug('TextToSpeech'), STT = plug('SpeechRecognition'), APP = plug('App'), HAP = plug('Haptics'), FS = plug('Filesystem');
 
 const fDay = new Intl.DateTimeFormat('ar-u-nu-latn', { weekday:'long', day:'numeric', month:'long' });
 const fShort = new Intl.DateTimeFormat('ar-u-nu-latn', { weekday:'short', day:'numeric', month:'short' });
@@ -633,6 +633,24 @@ const LOVE = {
   evening:['مساء الخير حبي 🌙','مساء الورد حبيبي 🌙','مساء الخير يا حياتي 🌷'],
   miss:['وين حبيبي؟ 🥰','وينك حبيبي؟ اشتقت لك 🥰','وين حياتي؟ طمّني عليك 🥰'],
 };
+/* صوت ريم في الإشعارات: ننسخ الملفات إلى Library/Sounds لأن iOS يدور فيها على نغمات الإشعارات */
+const VOICE = ['dinner','lunch','morning','evening','ate','miss1','miss2','miss3'];
+let voiceReady = false;
+async function installVoice(){
+  if(!FS || !isNative) return;
+  try{
+    const have = await FS.readdir({ path:'Sounds', directory:'LIBRARY' }).then(r => (r.files || []).map(f => f.name || f), () => []);
+    for(const n of VOICE){
+      const file = 'reem_' + n + '.wav';
+      if(have.includes(file)) continue;
+      const blob = await (await fetch('sounds/' + file)).blob();
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+      await FS.writeFile({ path:'Sounds/' + file, data:b64, directory:'LIBRARY', recursive:true });
+    }
+    voiceReady = true;
+  }catch(e){ console.log('voice install', e); }
+}
+const snd = n => (S.love && voiceReady) ? { sound:'reem_' + n + '.wav' } : {};
 function hm(str){ const [h, m] = String(str || '0:0').split(':').map(Number); return { h:h || 0, m:m || 0 }; }
 function hourLine(h){ const d = new Date(); d.setHours(h, 0, 0, 0); return 'الساعة الحين ' + clock(d); }
 let schedTimer = null;
@@ -650,20 +668,24 @@ async function doSchedule(){
     }
     // meals (repeat daily)
     if(S.meals){
-      (S.love ? [['breakfast','☕ ريّقت حبيبي؟','لا تطلع بدون ريوق يا حياتي 🥰'], ['lunch','🍛 تغدّيت حبيبي؟','قوم تغدّى وريّح شوي يا حياتي 🥰'], ['dinner','🍽️ تعشّيت حبيبي؟','تعشّى خفيف، صحتك عندي أهم 🥰']]
-        : [['breakfast','☕ وقت الريوق يا سالم','لا تنسى تفطر زين، يومك طويل 🌷'], ['lunch','🍛 وقت الغدا','قوم تغدّى وريّح شوي'], ['dinner','🍽️ وقت العشا','تعشّى خفيف، وصحتك أهم']]).forEach(([k, t, b], i) => {
-        const { h, m } = hm(S[k]); list.push({ id: ID.meal + i, title:t, body:b, schedule:{ on:{ hour:h, minute:m }, repeats:true } });
+      (S.love ? [['breakfast','☕ ريّقت حبيبي؟','لا تطلع بدون ريوق يا حياتي 🥰'], ['lunch','🍛 الغدا جاهز حياتي','قوم تغدّى وريّح شوي 🥰','lunch'], ['dinner','🍽️ العشا جاهز حبيبي','تعشّى خفيف، صحتك عندي أهم 🥰','dinner']]
+        : [['breakfast','☕ وقت الريوق يا سالم','لا تنسى تفطر زين، يومك طويل 🌷'], ['lunch','🍛 وقت الغدا','قوم تغدّى وريّح شوي'], ['dinner','🍽️ وقت العشا','تعشّى خفيف، وصحتك أهم']]).forEach(([k, t, b, v], i) => {
+        const { h, m } = hm(S[k]); list.push(Object.assign({ id: ID.meal + i, title:t, body:b, schedule:{ on:{ hour:h, minute:m }, repeats:true } }, v ? snd(v) : {}));
       });
+      if(S.love){ const { h, m } = hm(S.lunch); const t = h * 60 + m + 60; list.push(Object.assign({ id: ID.meal + 3, title:'🥰 تغدّيت حبيبي؟', body:'طمّني عليك', schedule:{ on:{ hour:Math.floor(t / 60) % 24, minute:t % 60 }, repeats:true } }, snd('ate'))); }
     }
     // «وين حبيبي؟» daily
-    if(S.love && S.miss){ const { h, m } = hm(S.miss); list.push({ id: ID.meal + 5, title: pick(LOVE.miss), body:'ريم تسأل عنك 🌷', schedule:{ on:{ hour:h, minute:m }, repeats:true } }); }
+    if(S.love && S.miss){
+      const { h, m } = hm(S.miss), MISS = [['🥰 عمري وينك اليوم؟','miss1'], ['🥺 معقول ما اشتقت لي اليوم؟','miss2'], ['🥰 وينك حبيبي؟','miss3']];
+      for(let d = 0; d < 6; d++){ const at = startOf(new Date(now + d * 864e5)); at.setHours(h, m, 0, 0); if(at <= now) continue; const [t, v] = MISS[at.getDate() % 3]; list.push(Object.assign({ id: ID.meal + 10 + d, title:t, body:'ريم تسأل عنك 🌷', schedule:{ at } }, snd(v))); }
+    }
     // morning & evening briefs for the coming 6 days (content depends on the day)
     for(let d = 0; d < 6; d++){
       const a = hm(S.am), b = hm(S.pm);
       const am = startOf(new Date(now + d * 864e5)); am.setHours(a.h, a.m, 0, 0);
       const pm = startOf(new Date(now + d * 864e5)); pm.setHours(b.h, b.m, 0, 0);
-      if(am > now) list.push({ id: ID.brief + d * 2, title: S.love ? '☀️ ' + pick(LOVE.morning).replace(/ [☀️🌷]+$/u, '') : '☀️ صباح الخير يا سالم', body: briefFor(d, true), schedule:{ at: am } });
-      if(pm > now) list.push({ id: ID.brief + d * 2 + 1, title: S.love ? '🌙 ' + pick(LOVE.evening).replace(/ [🌙🌷]+$/u, '') + ' — ملخص المسا' : '🌙 ملخص المسا', body: briefFor(d + 1, false), schedule:{ at: pm } });
+      if(am > now) list.push({ id: ID.brief + d * 2, title: S.love ? '☀️ صباح الخير حياتي' : '☀️ صباح الخير يا سالم', body: briefFor(d, true), schedule:{ at: am }, ...snd('morning') });
+      if(pm > now) list.push({ id: ID.brief + d * 2 + 1, title: S.love ? '🌙 مساء الخير حبي — ملخص المسا' : '🌙 ملخص المسا', body: briefFor(d + 1, false), schedule:{ at: pm }, ...snd('evening') });
     }
     // appointments & orders (nearest first, keep the total under iOS's 64 pending limit)
     const room = 62 - list.length;
@@ -757,8 +779,8 @@ renderPeople();
 loadVoices();
 if(isNative){
   document.documentElement.classList.add('native-app');
-  scheduleAll();
-  if(LN) LN.addListener('localNotificationReceived', n => { const t = [n.title, n.body].filter(Boolean).join('. '); if(t){ bubble(t, 'her'); say(t); } });
+  installVoice().finally(scheduleAll);
+  if(LN) LN.addListener('localNotificationReceived', n => { const t = [n.title, n.body].filter(Boolean).join('. '); if(t){ bubble(t, 'her'); if(!n.sound) say(t); } });
   if(LN) LN.addListener('localNotificationActionPerformed', a => { const n = a.notification || {}; const t = [n.title, n.body].filter(Boolean).join('. '); if(t){ bubble(t, 'her'); say(t); } });
   if(APP){
     APP.addListener('appUrlOpen', e => handleUrl(e.url));

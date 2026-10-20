@@ -758,6 +758,7 @@ loadVoices();
 if(isNative){
   document.documentElement.classList.add('native-app');
   scheduleAll();
+  if(LN) LN.addListener('localNotificationReceived', n => { const t = [n.title, n.body].filter(Boolean).join('. '); if(t){ bubble(t, 'her'); say(t); } });
   if(LN) LN.addListener('localNotificationActionPerformed', a => { const n = a.notification || {}; const t = [n.title, n.body].filter(Boolean).join('. '); if(t){ bubble(t, 'her'); say(t); } });
   if(APP){
     APP.addListener('appUrlOpen', e => handleUrl(e.url));

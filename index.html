@@ -40,9 +40,16 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);direc
   border:4px solid rgba(240,184,79,.9);box-shadow:0 16px 30px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.2)}
 .hero.listening .avatar::before{opacity:1;animation:pulse 1.1s ease-in-out infinite}
 .hero.speaking .avatar::before{opacity:.9;animation:pulse .5s ease-in-out infinite}
-.hero.speaking .avatar img{animation:talk .9s ease-in-out infinite}
+.avatar{perspective:700px;touch-action:none}
+.avatar .disc{position:relative;width:100%;height:100%;border-radius:50%;transform-style:preserve-3d;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .5s cubic-bezier(.2,.8,.2,1);animation:float 6s ease-in-out infinite}
+.avatar.drag .disc{transition:none}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -6px}}
+.av-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;border:4px solid rgba(240,184,79,.9)}
+.avatar .shine{position:absolute;inset:4px;border-radius:50%;pointer-events:none;background:radial-gradient(circle at var(--sx,35%) var(--sy,25%),rgba(255,255,255,.35),transparent 45%);mix-blend-mode:soft-light}
+.hero.speaking .avatar .disc{animation:float 6s ease-in-out infinite,talk .9s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.avatar .disc{animation:none}}
 @keyframes pulse{0%,100%{transform:scale(.94)}50%{transform:scale(1.08)}}
-@keyframes talk{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+@keyframes talk{0%,100%{scale:1}50%{scale:1.025}}
 .hero h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:.5px}
 .hero p{margin:6px 0 0;opacity:.9;line-height:1.6;font-size:.95rem;min-height:1.6em}
 .mic{margin:14px auto 0;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;
@@ -116,7 +123,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
 <div class="wrap">
   <section class="hero" id="hero">
     <div class="date" id="today"></div>
-    <div class="avatar"><img src="reem.jpg" alt="ريم" width="170" height="170"></div>
+    <div class="avatar" id="avatar"><div class="disc"><img src="reem.jpg" alt="ريم" width="170" height="170"><video class="av-vid" id="avIdle" muted loop playsinline preload="auto" hidden></video><video class="av-vid" id="avTalk" muted loop playsinline preload="auto" hidden></video><i class="shine"></i></div></div>
     <h1>ريم</h1>
     <p id="greet">سكرتيرتك الخاصة يا سالم</p>
     <button class="mic" id="micBtn" type="button" aria-label="كلّم ريم">
@@ -843,6 +850,25 @@ function handleUrl(u){
     say(S.love ? 'هلا حبيبي، آمرني' : 'هلا سالم، آمرني').then(() => setTimeout(listen, 150));
   }
 }
+
+/* ---------------- 3D avatar: tilt with finger + optional video loops (reem-idle.mp4 / reem-talk.mp4) ---------------- */
+(function(){
+  const av = $('avatar'), set = (rx, ry) => { av.style.setProperty('--rx', rx + 'deg'); av.style.setProperty('--ry', ry + 'deg'); av.style.setProperty('--sx', (50 + ry * 2) + '%'); av.style.setProperty('--sy', (40 - rx * 2) + '%'); };
+  const move = e => { const r = av.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5; set(Math.max(-1, Math.min(1, -y * 2)) * 18, Math.max(-1, Math.min(1, x * 2)) * 18); };
+  av.addEventListener('pointerdown', e => { av.classList.add('drag'); av.setPointerCapture(e.pointerId); move(e); });
+  av.addEventListener('pointermove', e => { if(av.classList.contains('drag')) move(e); });
+  const end = () => { av.classList.remove('drag'); set(0, 0); };
+  av.addEventListener('pointerup', end); av.addEventListener('pointercancel', end);
+  // idle sway so she always feels alive
+  let t = 0; setInterval(() => { if(av.classList.contains('drag') || matchMedia('(prefers-reduced-motion: reduce)').matches) return; t += .05; set(Math.sin(t) * 4, Math.cos(t * .7) * 6); }, 60);
+  const idle = $('avIdle'), talk = $('avTalk'), hero = $('hero');
+  const tryVid = (v, src) => fetch(src, { method:'HEAD' }).then(r => { if(!r.ok) throw 0; v.src = src; v.hidden = false; return v.play().catch(() => {}); }).catch(() => { v.removeAttribute('src'); v.hidden = true; });
+  Promise.all([tryVid(idle, 'reem-idle.mp4'), tryVid(talk, 'reem-talk.mp4')]).then(() => {
+    if(idle.hidden) return;
+    const sync = () => { const sp = hero.classList.contains('speaking') && talk.src; talk.hidden = !sp; idle.hidden = !!sp; (sp ? talk : idle).play().catch(() => {}); };
+    new MutationObserver(sync).observe(hero, { attributes:true, attributeFilter:['class'] }); sync();
+  });
+})();
 
 /* ---------------- start ---------------- */
 function greetLine(){

@@ -179,6 +179,10 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
     <div class="set"><div>إعلان الساعة<small>إشعار كل ساعة بالوقت</small></div><label class="sw"><input type="checkbox" data-k="hourly"><span></span></label></div>
     <div class="set"><div>من الساعة</div><select data-k="hFrom"></select></div>
     <div class="set"><div>إلى الساعة</div><select data-k="hTo"></select></div>
+    <div class="set"><div>ريم الذكية 🧠<small>تفهم أي كلام وتتذكر (تحتاج إنترنت)</small></div><label class="sw"><input type="checkbox" data-k="ai"><span></span></label></div>
+    <div class="set" style="display:block"><div style="margin-bottom:6px">رابط عقل ريم<small style="display:block">من Supabase ← Edge Functions ← reem-chat</small></div><input type="url" data-k="aiUrl" dir="ltr" placeholder="https://xxxx.supabase.co/functions/v1/reem-chat" style="width:100%;box-sizing:border-box;background:rgba(127,127,127,.12);color:inherit;border:1px solid rgba(127,127,127,.35);border-radius:10px;padding:10px;font:inherit;font-size:.8rem"></div>
+    <div class="set" style="display:block"><div style="margin-bottom:6px">رمز ريم السري<small style="display:block">انسخه والصقه في Supabase باسم REEM_TOKEN</small></div><div style="display:flex;gap:8px;align-items:center"><code id="aiTok" dir="ltr" style="flex:1;font-size:.72rem;word-break:break-all"></code><button class="btn2" type="button" id="aiTokCopy">📋 نسخ</button></div></div>
+    <div class="set"><button class="btn2" type="button" id="aiTest">🧠 جرّب عقل ريم</button></div>
     <div class="set"><div>دلع ريم 🥰<small>«حبيبي، حياتي» في التحيات والتذكيرات</small></div><label class="sw"><input type="checkbox" data-k="love"><span></span></label></div>
     <div class="set"><div>«وين حبيبي؟»<small>رسالة شوق كل يوم</small></div><input type="time" data-k="miss"></div>
     <div class="set"><div>تذكير الوجبات<small>الريوق والغدا والعشا</small></div><label class="sw"><input type="checkbox" data-k="meals"><span></span></label></div>
@@ -231,7 +235,7 @@ const LS = 'reem-items', LSS = 'reem-settings';
 const load = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; }catch(e){ return d; } };
 const keep = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 let items = load(LS, []);
-const DEF = { hourly:true, hFrom:7, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, love:true, miss:'16:30', voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
+const DEF = { hourly:true, hFrom:7, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, love:true, miss:'16:30', ai:false, aiUrl:'', aiToken:'', voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
 let S = Object.assign({}, DEF, load(LSS, {}));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const startOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
@@ -350,7 +354,73 @@ function bubble(txt, who, undo){
   $('log').append(m); $('log').scrollTop = $('log').scrollHeight; return m;
 }
 function reply(text, undo){ bubble(text, 'her', undo); $('greet').textContent = text.split('\n')[0]; return say(text); }
-function hear(text){ text = String(text || '').trim(); if(!text) return; bubble(text, 'me'); const r = understand(text); if(r) reply(r.text, r.undo); }
+function hear(text){
+  text = String(text || '').trim(); if(!text) return; bubble(text, 'me');
+  if(S.ai && S.aiUrl && S.aiToken && navigator.onLine !== false) return aiHear(text);
+  const r = understand(text); if(r) reply(r.text, r.undo);
+}
+
+/* ---------------- ريم الذكية (Gemini عبر دالة Supabase) ---------------- */
+if(!S.aiToken){ const a = new Uint8Array(24); crypto.getRandomValues(a); S.aiToken = Array.from(a, b => b.toString(16).padStart(2, '0')).join(''); keep(LSS, S); }
+function isoLocal(d){ const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':00+04:00'; }
+function aiCtx(){
+  const now = new Date();
+  const agenda = items.filter(i => !i.done).sort((a, b) => (a.due ? new Date(a.due) : 9e15) - (b.due ? new Date(b.due) : 9e15)).slice(0, 15)
+    .map(i => '- ' + (i.type === 'task' ? 'مهمة' : 'موعد') + ': ' + i.title + (i.due ? ' (' + (i.allDay ? fDay.format(new Date(i.due)) : isoLocal(new Date(i.due))) + ')' : '')).join('\n');
+  return { now: isoLocal(now) + ' — ' + fDay.format(now), agenda, people: people.map(p => p.name).join('، '), love: !!S.love };
+}
+async function aiAsk(text){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 30000);
+  try{
+    const r = await fetch(S.aiUrl.trim(), { method:'POST', signal:ctl.signal, headers:{ 'Content-Type':'application/json', 'x-reem-token':S.aiToken }, body:JSON.stringify({ text, ctx:aiCtx() }) });
+    const j = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(j.error === 'unauthorized' ? 'الرمز السري ما يطابق اللي في Supabase' : (j.detail || j.error || ('خطأ ' + r.status)));
+    return j;
+  } finally { clearTimeout(t); }
+}
+async function aiHear(text){
+  const wait = bubble('…', 'her');
+  try{
+    const j = await aiAsk(text);
+    wait.remove();
+    const notes = [], undos = [];
+    for(const a of (j.actions || [])) runAction(a, notes, undos);
+    const msg = j.text + (notes.length ? '\n' + notes.join('\n') : '');
+    await reply(msg, undos.length ? () => undos.forEach(u => u()) : null);
+  }catch(e){
+    wait.remove();
+    console.log('ai', e);
+    const r = understand(text);
+    if(r) reply(r.text, r.undo);
+    toast('عقل ريم ما رد (' + (e.name === 'AbortError' ? 'النت بطيء' : e.message) + ') — رديت بالردود العادية');
+  }
+}
+function runAction(a, notes, undos){
+  const g = a.args || {};
+  try{
+    if(a.name === 'add_item'){
+      const d = g.due ? new Date(g.due) : null, ok = d && !isNaN(d);
+      const it = { id:uid(), type: g.type === 'task' ? 'task' : 'appt', title:String(g.title || '').slice(0, 120) || 'بدون عنوان', due: ok ? d.toISOString() : null, allDay: !!g.all_day && ok, done:false, created:Date.now() };
+      save(it); undos.push(() => remove(it.id));
+    } else if(a.name === 'complete_item' || a.name === 'delete_item'){
+      const it = findItem(g.query || '');
+      if(!it){ notes.push('(ما لقيت «' + (g.query || '') + '» في الجدول)'); return; }
+      const prev = { ...it };
+      if(a.name === 'complete_item') save({ ...it, done:true }); else remove(it.id);
+      undos.push(() => save(prev));
+    } else if(a.name === 'call_contact' || a.name === 'whatsapp_contact'){
+      const p = findPerson(g.name || '');
+      if(!p){ notes.push('(ما عندي رقم ' + (g.name || '') + ' — احفظه من «📇 أرقامي»)'); return; }
+      setTimeout(() => a.name === 'call_contact' ? callPerson(p) : waPerson(p, g.message || ''), 1800);
+    } else if(a.name === 'save_contact'){
+      const name = String(g.name || '').trim(), phone = String(g.phone || '').replace(/\s|-/g, '');
+      if(!name || normPhone(phone).length < 8){ notes.push('(الرقم ما كان واضح)'); return; }
+      const ex = people.find(p => norm(p.name) === norm(name)); if(ex) ex.phone = phone; else people.push({ id:uid(), name, phone }); savePeople();
+    } else if(a.name === 'open_map' && g.place){
+      setTimeout(() => openUrl('https://maps.apple.com/?q=' + encodeURIComponent(g.place)), 1800);
+    }
+  }catch(e){ console.log('action', a, e); }
+}
 
 /* ---------------- understanding (offline, Gulf Arabic) ---------------- */
 const norm = s => String(s)
@@ -723,6 +793,14 @@ function briefFor(offset, morning){
     });
   });
   $('testVoice').onclick = () => say('هلا سالم، أنا ريم سكرتيرتك. آمرني وأنا حاضرة.');
+  $('aiTok').textContent = S.aiToken;
+  $('aiTokCopy').onclick = () => navigator.clipboard?.writeText(S.aiToken).then(() => toast('انسخ الرمز ✅ الصقه في Supabase'), () => toast('ما قدرت أنسخ، حدده وانسخه يدوي'));
+  $('aiTest').onclick = async () => {
+    if(!S.aiUrl) return toast('حط رابط عقل ريم أول');
+    toast('أجرب…');
+    try{ const j = await aiAsk('هلا ريم، هذي رسالة تجربة. ردي بجملة وحدة.'); toast('شغال ✅'); bubble(j.text, 'her'); say(j.text); }
+    catch(e){ toast('ما اشتغل: ' + (e.name === 'AbortError' ? 'ما رد خلال 30 ثانية' : e.message)); }
+  };
   $('testNotif').onclick = async () => {
     if(!LN) return toast('الإشعارات تشتغل في تطبيق الآيفون');
     try{ let p = await LN.checkPermissions(); if(p.display !== 'granted') p = await LN.requestPermissions(); if(p.display !== 'granted') return toast('فعّل الإشعارات من الإعدادات ← ريم');

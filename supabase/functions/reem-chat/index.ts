@@ -13,7 +13,7 @@ const json = (b: unknown, s = 200) =>
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 const TOKEN = Deno.env.get("REEM_TOKEN") ?? "";
-const MODELS = [Deno.env.get("GEMINI_MODEL"), "gemini-flash-latest", "gemini-2.5-flash"].filter(Boolean) as string[];
+const MODELS = [Deno.env.get("GEMINI_MODEL"), "gemini-flash-latest", "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite"].filter(Boolean) as string[];
 
 // أدوات: الذاكرة تتنفذ هنا، والباقي يرجع للجوال وينفذه
 const SERVER_TOOLS = new Set(["remember_fact", "forget_fact"]);
@@ -57,14 +57,18 @@ ${facts || "لا شي للحين"}`;
 }
 
 async function gemini(body: unknown) {
+  // يجرب أكثر من موديل: إذا واحد مزحوم (503/429/500) أو مو موجود، ينتقل للي بعده
   let last = "";
-  for (const m of MODELS) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
-      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": KEY }, body: JSON.stringify(body),
-    });
-    if (r.ok) return await r.json();
-    last = `${m}: ${r.status} ${(await r.text()).slice(0, 300)}`;
-    if (r.status !== 404 && r.status !== 400) break; // جرّب الموديل التالي فقط لو الاسم مو موجود
+  for (let round = 0; round < 2; round++) {
+    for (const m of MODELS) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+        method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": KEY }, body: JSON.stringify(body),
+      });
+      if (r.ok) return await r.json();
+      last = `${m}: ${r.status} ${(await r.text()).slice(0, 200)}`;
+      if (r.status === 401 || r.status === 403) throw new Error(last); // المفتاح نفسه غلط
+    }
+    await new Promise((res) => setTimeout(res, 1500));
   }
   throw new Error(last);
 }

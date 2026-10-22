@@ -4,7 +4,7 @@
   "private": true,
   "description": "ريم السكرتيرة — تطبيق آيفون (Capacitor)",
   "scripts": {
-    "build": "rm -rf www && mkdir -p www && cp ../index.html ../icon.svg ../manifest.json ../reem.jpg ../icon-*.png www/ && cp -R ../sounds www/sounds && (cp ../reem-*.mp4 www/ 2>/dev/null || true)",
+    "build": "rm -rf www && mkdir -p www && cp ../index.html ../icon.svg ../manifest.json ../reem.jpg ../reem-blink.jpg ../icon-*.png www/ && cp -R ../sounds www/sounds && (cp ../reem-*.mp4 www/ 2>/dev/null || true)",
     "assets": "capacitor-assets generate --ios --iconBackgroundColor '#0e4d5c' --splashBackgroundColor '#0e4d5c' --splashBackgroundColorDark '#0a3540'"
   },
   "dependencies": {

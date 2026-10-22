@@ -44,6 +44,10 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);direc
 .avatar .disc{position:relative;width:100%;height:100%;border-radius:50%;transform-style:preserve-3d;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .5s cubic-bezier(.2,.8,.2,1);animation:float 6s ease-in-out infinite}
 .avatar.drag .disc{transition:none}
 @keyframes float{0%,100%{translate:0 0}50%{translate:0 -6px}}
+.avatar img.blink{position:absolute;inset:0;opacity:0;box-shadow:none;transition:opacity .04s}
+.avatar img.blink.on{opacity:1}
+.avatar .disc > img{animation:breathe 4.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{scale:1}50%{scale:1.015}}
 .av-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;border:4px solid rgba(240,184,79,.9)}
 .avatar .shine{position:absolute;inset:4px;border-radius:50%;pointer-events:none;background:radial-gradient(circle at var(--sx,35%) var(--sy,25%),rgba(255,255,255,.35),transparent 45%);mix-blend-mode:soft-light}
 .hero.speaking .avatar .disc{animation:float 6s ease-in-out infinite,talk .9s ease-in-out infinite}
@@ -123,7 +127,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
 <div class="wrap">
   <section class="hero" id="hero">
     <div class="date" id="today"></div>
-    <div class="avatar" id="avatar"><div class="disc"><img src="reem.jpg" alt="ريم" width="170" height="170"><video class="av-vid" id="avIdle" muted loop playsinline preload="auto" hidden></video><video class="av-vid" id="avTalk" muted loop playsinline preload="auto" hidden></video><i class="shine"></i></div></div>
+    <div class="avatar" id="avatar"><div class="disc"><img src="reem.jpg" alt="ريم" width="170" height="170"><img class="blink" id="avBlink" src="reem-blink.jpg" alt="" aria-hidden="true" width="170" height="170"><video class="av-vid" id="avIdle" muted loop playsinline preload="auto" hidden></video><video class="av-vid" id="avTalk" muted loop playsinline preload="auto" hidden></video><i class="shine"></i></div></div>
     <h1>ريم</h1>
     <p id="greet">سكرتيرتك الخاصة يا سالم</p>
     <button class="mic" id="micBtn" type="button" aria-label="كلّم ريم">
@@ -861,6 +865,10 @@ function handleUrl(u){
   av.addEventListener('pointerup', end); av.addEventListener('pointercancel', end);
   // idle sway so she always feels alive
   let t = 0; setInterval(() => { if(av.classList.contains('drag') || matchMedia('(prefers-reduced-motion: reduce)').matches) return; t += .05; set(Math.sin(t) * 4, Math.cos(t * .7) * 6); }, 60);
+  // blink: her eyes close for a split second every few seconds (sometimes a double blink)
+  const bl = $('avBlink');
+  const blink = () => { bl.classList.add('on'); setTimeout(() => bl.classList.remove('on'), 130); };
+  (function loop(){ setTimeout(() => { if(!document.hidden && !matchMedia('(prefers-reduced-motion: reduce)').matches){ blink(); if(Math.random() < .25) setTimeout(blink, 280); } loop(); }, 2500 + Math.random() * 3500); })();
   const idle = $('avIdle'), talk = $('avTalk'), hero = $('hero');
   const tryVid = (v, src) => fetch(src, { method:'HEAD' }).then(r => { if(!r.ok) throw 0; v.src = src; v.hidden = false; return v.play().catch(() => {}); }).catch(() => { v.removeAttribute('src'); v.hidden = true; });
   Promise.all([tryVid(idle, 'reem-idle.mp4'), tryVid(talk, 'reem-talk.mp4')]).then(() => {

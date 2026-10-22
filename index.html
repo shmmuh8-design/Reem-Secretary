@@ -185,11 +185,22 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
   </details>
 
 
+  <details class="box" id="memBox">
+    <summary>🧠 ذكرياتي <small id="memCount" style="font-weight:400;color:var(--muted)"></small></summary>
+    <div class="form2">
+      <div class="howto" style="padding:0">كل شي ريم حافظته عنك. تقدر تمسح أي شي، أو تضيف بنفسك. (تحتاج ريم الذكية والإنترنت)</div>
+      <div class="list" id="memList"></div>
+      <div class="two"><input id="mKey" class="fld" type="text" placeholder="العنوان: أكلتي" aria-label="العنوان"><input id="mVal" class="fld" type="text" placeholder="المعلومة: مجبوس" aria-label="المعلومة"></div>
+      <button class="btn2" type="button" id="mAdd">➕ خلّي ريم تحفظها</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn2" type="button" id="mRefresh">🔄 تحديث</button><button class="btn2" type="button" id="mClearChat">💬 امسح السوالف القديمة</button><button class="btn2" type="button" id="mForgetAll">🗑️ امسح كل الذكريات</button></div>
+    </div>
+  </details>
+
   <details class="box" id="setBox">
     <summary>⚙️ إعدادات ريم</summary>
     <div class="set"><div>إعلان الساعة<small>إشعار كل ساعة بالوقت</small></div><label class="sw"><input type="checkbox" data-k="hourly"><span></span></label></div>
     <div class="set"><div>من الساعة</div><select data-k="hFrom"></select></div>
-    <div class="set"><div>إلى الساعة</div><select data-k="hTo"></select></div>
+    <div class="set"><div>إلى الساعة<small>من 12 الليل إلى 11 الليل = على طول 24 ساعة</small></div><select data-k="hTo"></select></div>
     <div class="set"><div>ريم الذكية 🧠<small>تفهم أي كلام وتتذكر (تحتاج إنترنت)</small></div><label class="sw"><input type="checkbox" data-k="ai"><span></span></label></div>
     <div class="set" style="display:block"><div style="margin-bottom:6px">رابط عقل ريم<small style="display:block">من Supabase ← Edge Functions ← reem-chat</small></div><input type="url" data-k="aiUrl" dir="ltr" placeholder="https://xxxx.supabase.co/functions/v1/reem-chat" style="width:100%;box-sizing:border-box;background:rgba(127,127,127,.12);color:inherit;border:1px solid rgba(127,127,127,.35);border-radius:10px;padding:10px;font:inherit;font-size:.8rem"></div>
     <div class="set" style="display:block"><div style="margin-bottom:6px">رمز ريم السري<small style="display:block">انسخه والصقه في Supabase باسم REEM_TOKEN</small></div><div style="display:flex;gap:8px;align-items:center"><code id="aiTok" dir="ltr" style="flex:1;font-size:.72rem;word-break:break-all"></code><button class="btn2" type="button" id="aiTokCopy">📋 نسخ</button></div></div>
@@ -246,8 +257,9 @@ const LS = 'reem-items', LSS = 'reem-settings';
 const load = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; }catch(e){ return d; } };
 const keep = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 let items = load(LS, []);
-const DEF = { hourly:true, hFrom:7, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, love:true, miss:'16:30', ai:false, aiUrl:'', aiToken:'', voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
+const DEF = { hourly:true, hFrom:0, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, love:true, miss:'16:30', ai:false, aiUrl:'', aiToken:'', voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
 let S = Object.assign({}, DEF, load(LSS, {}));
+if(!S.h24){ S.hFrom = 0; S.hTo = 23; S.h24 = true; keep(LSS, S); }   // ريم على طول 24 ساعة (تقدر تغيّرها من الإعدادات)
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const startOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
 const dayDiff = d => Math.round((startOf(d) - startOf(new Date())) / 864e5);
@@ -745,7 +757,8 @@ async function doSchedule(){
     const list = [], now = Date.now();
     // hourly time announcement (repeats every day)
     if(S.hourly){
-      for(let h = +S.hFrom; h <= +S.hTo && h < 24; h++) list.push({ id: ID.hour + h, title:'🕐 ريم', body: hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } });
+      const hrs = []; for(let h = +S.hFrom, n = 0; n < 24; h = (h + 1) % 24, n++){ hrs.push(h); if(h === +S.hTo) break; }
+      for(const h of hrs) list.push({ id: ID.hour + h, title:'🕐 ريم', body: hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } });
     }
     // meals (repeat daily)
     if(S.meals){
@@ -877,6 +890,54 @@ function handleUrl(u){
     new MutationObserver(sync).observe(hero, { attributes:true, attributeFilter:['class'] }); sync();
   });
 })();
+
+
+/* ---------------- ذكرياتي ---------------- */
+async function aiOp(op, extra){
+  if(!S.aiUrl) throw new Error('حط رابط عقل ريم في الإعدادات أول');
+  const r = await fetch(S.aiUrl.trim(), { method:'POST', headers:{ 'Content-Type':'application/json', 'x-reem-token':S.aiToken }, body:JSON.stringify(Object.assign({ op }, extra || {})) });
+  const j = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(j.error === 'unauthorized' ? 'الرمز السري ما يطابق' : j.error === 'empty' && op === 'facts' ? 'لازم تحدّث دالة reem-chat في Supabase' : (j.error || ('خطأ ' + r.status)));
+  if(op === 'facts' && !Array.isArray(j.facts)) throw new Error('لازم تحدّث دالة reem-chat في Supabase');
+  return j;
+}
+const mPretty = k => String(k).replace(/_/g, ' ');
+async function loadMem(){
+  const box = $('memList'); box.innerHTML = '<div class="empty">…</div>';
+  try{
+    const { facts } = await aiOp('facts');
+    $('memCount').textContent = facts.length ? '(' + facts.length + ')' : '';
+    box.innerHTML = '';
+    if(!facts.length){ box.innerHTML = '<div class="empty">ريم ما حفظت شي للحين. سولف معها عن نفسك 🥰</div>'; return; }
+    for(const f of facts){
+      const row = document.createElement('div'); row.className = 'item';
+      const txt = document.createElement('div'); txt.style.flex = '1';
+      const b = document.createElement('b'); b.textContent = mPretty(f.key);
+      const v = document.createElement('div'); v.textContent = f.value; v.style.fontSize = '.85rem'; v.style.opacity = '.85';
+      txt.append(b, v);
+      const del = document.createElement('button'); del.className = 'btn2'; del.type = 'button'; del.textContent = '🗑️'; del.setAttribute('aria-label', 'امسح');
+      del.onclick = async () => { if(!confirmOnce(del)) return; try{ await aiOp('forget', { key:f.key }); row.remove(); toast('ريم نستها ✅'); loadMem(); }catch(e){ toast(e.message); } };
+      row.style.display = 'flex'; row.style.gap = '8px'; row.style.alignItems = 'center';
+      row.append(txt, del); box.append(row);
+    }
+  }catch(e){ box.innerHTML = ''; const d = document.createElement('div'); d.className = 'empty'; d.textContent = e.message; box.append(d); }
+}
+// ضغطتين للتأكيد بدل نافذة confirm
+function confirmOnce(btn){
+  if(btn.dataset.sure){ return true; }
+  btn.dataset.sure = '1'; const old = btn.textContent; btn.textContent = 'متأكد؟';
+  setTimeout(() => { delete btn.dataset.sure; btn.textContent = old; }, 3000);
+  return false;
+}
+$('memBox').addEventListener('toggle', () => { if($('memBox').open) loadMem(); });
+$('mRefresh').onclick = loadMem;
+$('mAdd').onclick = async () => {
+  const key = $('mKey').value.trim(), value = $('mVal').value.trim();
+  if(!key || !value) return toast('اكتب العنوان والمعلومة');
+  try{ await aiOp('remember', { key:key.replace(/\s+/g, '_'), value }); $('mKey').value = $('mVal').value = ''; toast('ريم حفظتها 🥰'); loadMem(); }catch(e){ toast(e.message); }
+};
+$('mForgetAll').onclick = async e => { if(!confirmOnce(e.currentTarget)) return; try{ await aiOp('forget_all'); toast('انمسحت كل الذكريات'); loadMem(); }catch(er){ toast(er.message); } };
+$('mClearChat').onclick = async e => { if(!confirmOnce(e.currentTarget)) return; try{ await aiOp('clear_chat'); toast('انمسحت السوالف القديمة ✅'); }catch(er){ toast(er.message); } };
 
 /* ---------------- start ---------------- */
 function greetLine(){

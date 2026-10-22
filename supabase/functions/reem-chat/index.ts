@@ -98,6 +98,31 @@ Deno.serve(async (req) => {
 
   let input: any;
   try { input = await req.json(); } catch { return json({ error: "bad json" }, 400); }
+  // صفحة «ذكرياتي»: عرض / إضافة / مسح اللي ريم حافظته
+  const op = String(input?.op ?? "");
+  if (op === "facts") {
+    const { data, error } = await db.from("reem_facts").select("key,value,updated_at").order("updated_at", { ascending: false }).limit(300);
+    return error ? json({ error: error.message }, 500) : json({ facts: data ?? [] });
+  }
+  if (op === "remember") {
+    const key = String(input?.key ?? "").trim().slice(0, 80), value = String(input?.value ?? "").trim().slice(0, 500);
+    if (!key || !value) return json({ error: "empty" }, 400);
+    const { error } = await db.from("reem_facts").upsert({ key, value, updated_at: new Date().toISOString() });
+    return error ? json({ error: error.message }, 500) : json({ ok: true });
+  }
+  if (op === "forget") {
+    const { error } = await db.from("reem_facts").delete().eq("key", String(input?.key ?? ""));
+    return error ? json({ error: error.message }, 500) : json({ ok: true });
+  }
+  if (op === "forget_all") {
+    const { error } = await db.from("reem_facts").delete().neq("key", "");
+    return error ? json({ error: error.message }, 500) : json({ ok: true });
+  }
+  if (op === "clear_chat") {
+    const { error } = await db.from("reem_messages").delete().gt("id", 0);
+    return error ? json({ error: error.message }, 500) : json({ ok: true });
+  }
+
   const text = String(input?.text ?? "").trim().slice(0, 2000);
   if (!text) return json({ error: "empty" }, 400);
   const ctx = input?.ctx ?? {};

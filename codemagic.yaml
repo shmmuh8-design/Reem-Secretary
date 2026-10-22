@@ -32,6 +32,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Delete :CFBundleDisplayName" $PLIST || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string ريم" $PLIST
           /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string ريم تسمع كلامك عشان تسجل مواعيدك وترد عليك" $PLIST || true
+          /usr/libexec/PlistBuddy -c "Add :NSContactsUsageDescription string ريم تدور على الشخص في جهات اتصالك عشان تتصل فيه أو تراسله لما تطلب منها" $PLIST || true
           /usr/libexec/PlistBuddy -c "Add :NSSpeechRecognitionUsageDescription string ريم تحوّل كلامك إلى نص عشان تفهم طلبك" $PLIST || true
           /usr/libexec/PlistBuddy -c "Set :CFBundleDevelopmentRegion ar" $PLIST || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" $PLIST || true

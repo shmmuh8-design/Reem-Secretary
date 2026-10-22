@@ -179,8 +179,9 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
     <div class="form2">
       <div class="two"><input id="pName" class="fld" type="text" placeholder="الاسم (مثلًا: أحمد)" aria-label="الاسم"><input id="pPhone" class="fld" type="tel" inputmode="tel" placeholder="الرقم" aria-label="الرقم" dir="ltr"></div>
       <button class="btn2" type="button" id="pAdd">➕ احفظ الرقم</button>
+      <button class="btn2" type="button" id="pPick">⭐ اختار من جهات الاتصال</button>
       <div class="list" id="peopleList"></div>
-      <div class="howto" style="padding:0">أو قول لريم: «احفظي رقم أحمد 99123456»، وبعدها «اتصلي بأحمد» أو «ارسلي لأحمد إني بمر عليه العصر».</div>
+      <div class="howto" style="padding:0">اضغط «⭐ اختار من جهات الاتصال» وضيف المفضلين عندك واحد واحد. وحتى لو ما حفظته هنا، ريم تدور عليه في جهات اتصالك.<br>أو قول لريم: «احفظي رقم أحمد 99123456»، وبعدها «اتصلي بأحمد» أو «ارسلي لأحمد إني بمر عليه العصر».</div>
     </div>
   </details>
 
@@ -245,7 +246,7 @@ const $ = id => document.getElementById(id);
 const Cap = window.Capacitor;
 const isNative = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
 const plug = n => isNative ? (Cap.Plugins[n] || (Cap.registerPlugin && Cap.registerPlugin(n))) : null;
-const LN = plug('LocalNotifications'), TTS = plug('TextToSpeech'), STT = plug('SpeechRecognition'), APP = plug('App'), HAP = plug('Haptics'), FS = plug('Filesystem');
+const LN = plug('LocalNotifications'), TTS = plug('TextToSpeech'), STT = plug('SpeechRecognition'), APP = plug('App'), HAP = plug('Haptics'), FS = plug('Filesystem'), CT = plug('Contacts');
 
 const fDay = new Intl.DateTimeFormat('ar-u-nu-latn', { weekday:'long', day:'numeric', month:'long' });
 const fShort = new Intl.DateTimeFormat('ar-u-nu-latn', { weekday:'short', day:'numeric', month:'short' });
@@ -433,7 +434,7 @@ function runAction(a, notes, undos){
       undos.push(() => save(prev));
     } else if(a.name === 'call_contact' || a.name === 'whatsapp_contact'){
       const p = findPerson(g.name || '');
-      if(!p){ notes.push('(ما عندي رقم ' + (g.name || '') + ' — احفظه من «📇 أرقامي»)'); return; }
+      if(!p){ if(CT){ setTimeout(() => lookupAndAct(g.name || '', a.name === 'call_contact' ? 'call' : 'wa', g.message || ''), 1200); return; } notes.push('(ما عندي رقم ' + (g.name || '') + ' — احفظه من «📇 أرقامي»)'); return; }
       setTimeout(() => a.name === 'call_contact' ? callPerson(p) : waPerson(p, g.message || ''), 1800);
     } else if(a.name === 'save_contact'){
       const name = String(g.name || '').trim(), phone = String(g.phone || '').replace(/\s|-/g, '');
@@ -568,9 +569,9 @@ function renderPeople(){
   const box = $('peopleList'); box.replaceChildren();
   $('peopleCount').textContent = people.length ? '(' + people.length + ')' : '';
   if(!people.length){ const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'ما في أرقام محفوظة لسا.'; box.append(e); return; }
-  [...people].sort((a, b) => a.name.localeCompare(b.name, 'ar')).forEach(p => {
+  [...people].sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0) || a.name.localeCompare(b.name, 'ar')).forEach(p => {
     const r = document.createElement('div'); r.className = 'pRow';
-    const t = document.createElement('div'); const b = document.createElement('b'); b.textContent = p.name; const sp = document.createElement('span'); sp.textContent = '+' + normPhone(p.phone); t.append(b, sp);
+    const t = document.createElement('div'); const b = document.createElement('b'); b.textContent = (p.fav ? '⭐ ' : '') + p.name; const sp = document.createElement('span'); sp.textContent = '+' + normPhone(p.phone); t.append(b, sp);
     const mk = (ico, lbl, fn) => { const x = document.createElement('button'); x.type = 'button'; x.className = 'ic'; x.textContent = ico; x.setAttribute('aria-label', lbl); x.onclick = fn; return x; };
     r.append(t, mk('📞', 'اتصال', () => callPerson(p)), mk('💬', 'واتساب', () => waPerson(p, '')), mk('×', 'حذف', () => { people = people.filter(x => x !== p); savePeople(); toast('انحذف الرقم'); }));
     box.append(r);
@@ -582,6 +583,52 @@ $('pAdd').onclick = () => {
   const ex = people.find(p => norm(p.name) === norm(name)); if(ex) ex.phone = phone; else people.push({ id:uid(), name, phone });
   savePeople(); $('pName').value = ''; $('pPhone').value = ''; toast('انحفظ رقم ' + name + ' ✅');
 };
+
+/* ---------------- جهات الاتصال (المفضلين) ---------------- */
+// أبل ما تسمح للتطبيقات تقرا قائمة «المفضلة» نفسها، فسالم يختارهم مرة وحدة من جهات الاتصال
+function bestPhone(c){
+  const ph = (c.phones || []).map(x => ({ n:String(x.number || ''), t:String(x.type || x.label || '') })).filter(x => normPhone(x.n).length >= 8);
+  if(!ph.length) return '';
+  const mob = ph.find(x => /mobile|iphone|جوال|موبايل/i.test(x.t)) || ph.find(x => /^968[79]\d{7}$/.test(normPhone(x.n))) || ph[0];
+  return mob.n;
+}
+const cName = c => (c.name && (c.name.display || [c.name.given, c.name.family].filter(Boolean).join(' '))) || '';
+$('pPick').onclick = async () => {
+  if(!CT) return toast('هذي تشتغل في تطبيق ريم على الآيفون');
+  try{
+    const { contact } = await CT.pickContact({ projection:{ name:true, phones:true } });
+    if(!contact) return;
+    const name = cName(contact).trim(), phone = bestPhone(contact);
+    if(!name || !phone) return toast('هذا الشخص ما عنده رقم');
+    const ex = people.find(p => norm(p.name) === norm(name));
+    if(ex){ ex.phone = phone; ex.fav = true; } else people.push({ id:uid(), name, phone, fav:true });
+    savePeople(); toast('⭐ ' + name + ' صار من المفضلين'); say('حفظت ' + name + '. قول اتصلي ب' + name);
+  }catch(e){ if(!/cancel/i.test(String(e && (e.message || e)))) toast('ما قدرت أفتح جهات الاتصال'); }
+};
+let allContacts = null;
+async function contactsList(){
+  if(allContacts) return allContacts;
+  const perm = await CT.requestPermissions().catch(() => ({}));
+  if(perm.contacts && perm.contacts !== 'granted' && perm.contacts !== 'limited') throw new Error('perm');
+  const { contacts } = await CT.getContacts({ projection:{ name:true, phones:true } });
+  allContacts = (contacts || []).map(c => ({ name:cName(c), phone:bestPhone(c) })).filter(c => c.name && c.phone);
+  setTimeout(() => { allContacts = null; }, 10 * 60e3);
+  return allContacts;
+}
+async function lookupAndAct(name, kind, msg){
+  try{
+    const list = await contactsList();
+    const w = norm(name).replace(/^(ب|ل|على|عل|لـ)\s*/, '').replace(/^(ب|ل)(?=\S)/, '');
+    let best = list.find(c => norm(c.name) === w) || list.find(c => norm(c.name).startsWith(w)) || list.find(c => norm(c.name).split(' ').includes(w)) || list.find(c => norm(c.name).includes(w));
+    if(!best){ const t = 'ما لقيت ' + name + ' في جهات اتصالك.'; bubble(t, 'her'); say(t); return; }
+    const t = (kind === 'call' ? 'لقيته، أتصل ب' : 'لقيته، بفتح الواتساب مع ') + best.name + (kind === 'call' ? ' 📞' : ' 💬');
+    bubble(t, 'her'); say(t);
+    setTimeout(() => kind === 'call' ? callPerson(best) : waPerson(best, msg || ''), 1500);
+  }catch(e){
+    const t = 'ما عندي إذن أشوف جهات الاتصال. فعّله من الإعدادات ← ريم ← جهات الاتصال، أو ضيفه من «⭐ اختار من جهات الاتصال».';
+    bubble(t, 'her'); toast('ريم تحتاج إذن جهات الاتصال');
+  }
+}
 
 function understand(text){
   const n = ' ' + norm(text) + ' ';
@@ -620,6 +667,7 @@ function understand(text){
   c = n.match(/^\s*(يا\s+ريم\s+)?(اتصلي|اتصل|دقي|دق|كلمي|ارني|رني)\s+(علي|على|ب|عل)?\s*(.+)$/);
   if(c && !has(/(ذكر|بكره|الساعه|بعد)/)){
     const p = findPerson(c[4]);
+    if(!p && CT){ lookupAndAct(original(text, c[4]), 'call'); return { text:'ثواني، أدور على ' + original(text, c[4]) + ' في جهات اتصالك 🔎' }; }
     if(!p) return { text:'ما عندي رقم ' + original(text, c[4]) + '. قول: «احفظي رقم ' + original(text, c[4]) + '» وبعده الرقم.' };
     setTimeout(() => callPerson(p), 1600);
     return { text:'أبشر، أتصل ب' + p.name + ' الحين 📞' };
@@ -628,6 +676,7 @@ function understand(text){
   c = n.match(/^\s*(يا\s+ريم\s+)?(ارسلي|ارسل|راسلي|راسل|واتساب|واتس|ابعثي|طرشي)\s+(رساله\s+|واتساب\s+)?(ل|الى|لـ)?\s*(\S+)\s*(.*)$/);
   if(c){
     let p = findPerson(c[5]) || findPerson(c[5] + ' ' + (c[6].split(' ')[0] || ''));
+    if(!p && CT){ const rest0 = c[6].replace(/^(قول(ي)?\s+له|قول(ي)?\s+لها|ان|انه|اني|بان)\s+/, '').trim(); lookupAndAct(original(text, c[5]), 'wa', rest0 ? original(text, rest0) : ''); return { text:'ثواني، أدور على ' + original(text, c[5]) + ' في جهات اتصالك 🔎' }; }
     if(!p) return { text:'ما عندي رقم ' + original(text, c[5]) + '. احفظه من «📇 أرقامي» أو قول: «احفظي رقم ' + original(text, c[5]) + '» وبعده الرقم.' };
     const rest = c[6].replace(/^(قول(ي)?\s+له|قول(ي)?\s+لها|ان|انه|اني|بان)\s+/, '').trim();
     const msg = rest ? original(text, rest) : '';

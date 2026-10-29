@@ -937,9 +937,15 @@ function handleUrl(u){
   const blink = () => { bl.classList.add('on'); setTimeout(() => bl.classList.remove('on'), 130); };
   (function loop(){ setTimeout(() => { if(!document.hidden && !matchMedia('(prefers-reduced-motion: reduce)').matches){ blink(); if(Math.random() < .25) setTimeout(blink, 280); } loop(); }, 2500 + Math.random() * 3500); })();
   const idle = $('avIdle'), talk = $('avTalk'), hero = $('hero');
-  const tryVid = (v, src) => fetch(src, { method:'HEAD' }).then(r => { if(!r.ok) throw 0; v.src = src; v.hidden = false; return v.play().catch(() => {}); }).catch(() => { v.removeAttribute('src'); v.hidden = true; });
+  // load directly (fetch HEAD fails inside the iOS app's capacitor:// scheme)
+  const tryVid = (v, src) => new Promise(res => {
+    const ok = () => { clean(); v.hidden = true; res(); }, bad = () => { clean(); v.removeAttribute('src'); v.load(); v.hidden = true; res(); };
+    const clean = () => { v.removeEventListener('loadeddata', ok); v.removeEventListener('error', bad); clearTimeout(t); };
+    v.addEventListener('loadeddata', ok); v.addEventListener('error', bad); const t = setTimeout(ok, 4000);
+    v.src = src; v.load();
+  });
   Promise.all([tryVid(idle, 'reem-idle.mp4'), tryVid(talk, 'reem-talk.mp4')]).then(() => {
-    if(idle.hidden && talk.hidden) return;
+    if(!idle.getAttribute('src') && !talk.getAttribute('src')) return;
     const hasIdle = !!idle.getAttribute('src'), hasTalk = !!talk.getAttribute('src');
     const sync = () => { const sp = hero.classList.contains('speaking') && hasTalk;
       talk.hidden = !sp; idle.hidden = sp || !hasIdle;

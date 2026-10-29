@@ -943,7 +943,7 @@ function handleUrl(u){
     const hasIdle = !!idle.getAttribute('src'), hasTalk = !!talk.getAttribute('src');
     const sync = () => { const sp = hero.classList.contains('speaking') && hasTalk;
       talk.hidden = !sp; idle.hidden = sp || !hasIdle;
-      if(sp){ talk.currentTime = 0; talk.play().catch(() => {}); } else { talk.pause(); if(hasIdle) idle.play().catch(() => {}); } };
+      if(sp){ talk.currentTime = (talk.duration || 0) / 2; talk.play().catch(() => {}); } else { talk.pause(); if(hasIdle) idle.play().catch(() => {}); } };
     new MutationObserver(sync).observe(hero, { attributes:true, attributeFilter:['class'] }); sync();
   });
 })();

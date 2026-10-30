@@ -781,7 +781,7 @@ const LOVE = {
   miss:['وين حبيبي؟ 🥰','وينك حبيبي؟ اشتقت لك 🥰','وين حياتي؟ طمّني عليك 🥰'],
 };
 /* صوت ريم في الإشعارات: ننسخ الملفات إلى Library/Sounds لأن iOS يدور فيها على نغمات الإشعارات */
-const VOICE = ['dinner','lunch','morning','evening','ate','miss1','miss2','miss3'];
+const VOICE = ['dinner','lunch','morning','evening','ate','miss1','miss2','miss3','h1','h2','h3','h4','h5','h6','h7','h8','h9','h10','h11','h12'];
 let voiceReady = false;
 async function installVoice(){
   if(!FS || !isNative) return;
@@ -822,7 +822,7 @@ async function doSchedule(){
     // hourly time announcement (repeats every day)
     if(S.hourly){
       const hrs = []; for(let h = +S.hFrom, n = 0; n < 24; h = (h + 1) % 24, n++){ hrs.push(h); if(h === +S.hTo) break; }
-      for(const h of hrs) list.push({ id: ID.hour + h, title:'🕐 ريم', body: hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } });
+      for(const h of hrs) list.push(Object.assign({ id: ID.hour + h, title:'🕐 ريم', body: hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } }, voiceReady ? { sound:'reem_h' + (h % 12 || 12) + '.wav' } : {}));
     }
     // meals (repeat daily)
     if(S.meals){

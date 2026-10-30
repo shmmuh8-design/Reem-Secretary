@@ -799,6 +799,16 @@ async function installVoice(){
 }
 const snd = n => (S.love && voiceReady) ? { sound:'reem_' + n + '.wav' } : {};
 function hm(str){ const [h, m] = String(str || '0:0').split(':').map(Number); return { h:h || 0, m:m || 0 }; }
+// ريم تنطق الساعة بصوتها وقت ما التطبيق مفتوح (داخل نطاق «إعلان الساعة»)
+(function(){
+  let last = -1;
+  const inRange = h => { const f = +S.hFrom, t = +S.hTo; return f <= t ? (h >= f && h <= t) : (h >= f || h <= t); };
+  setInterval(() => {
+    const d = new Date(), h = d.getHours();
+    if(!S.hourly || document.hidden || d.getMinutes() !== 0 || h === last || !inRange(h)) return;
+    last = h; const line = hourLine(h); bubble(line + ' 🕐', 'her'); say(line);
+  }, 15000);
+})();
 function hourLine(h){ const d = new Date(); d.setHours(h, 0, 0, 0); return 'الساعة الحين ' + clock(d); }
 let schedTimer = null;
 function scheduleAll(){ clearTimeout(schedTimer); schedTimer = setTimeout(doSchedule, 400); }

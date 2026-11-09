@@ -781,8 +781,14 @@ const LOVE = {
   miss:['وين حبيبي؟ 🥰','وينك حبيبي؟ اشتقت لك 🥰','وين حياتي؟ طمّني عليك 🥰'],
 };
 /* صوت ريم في الإشعارات: ننسخ الملفات إلى Library/Sounds لأن iOS يدور فيها على نغمات الإشعارات */
-const VOICE = ['dinner','lunch','morning','evening','ate','miss1','miss2','miss3','h1','h2','h3','h4','h5','h6','h7','h8','h9','h10','h11','h12'];
+const VOICE = ['dinner','lunch','morning','evening','ate','miss1','miss2','miss3','h1','h2','h3','h4','h5','h6','h7','h8','h9','h10','h11','h12','clip'];
 let voiceReady = false;
+// فيديو ريم (6 ثواني) يظهر داخل إشعار الساعة — iOS يحتاج ملف محلي، فننسخه إلى Library/Clips
+let clipUrl = null;
+async function fileToB64(path){
+  const blob = await (await fetch(path)).blob();
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+}
 async function installVoice(){
   if(!FS || !isNative) return;
   try{
@@ -790,10 +796,11 @@ async function installVoice(){
     for(const n of VOICE){
       const file = 'reem_' + n + '.wav';
       if(have.includes(file)) continue;
-      const blob = await (await fetch('sounds/' + file)).blob();
-      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
-      await FS.writeFile({ path:'Sounds/' + file, data:b64, directory:'LIBRARY', recursive:true });
+      await FS.writeFile({ path:'Sounds/' + file, data:await fileToB64('sounds/' + file), directory:'LIBRARY', recursive:true });
     }
+    const haveClip = await FS.readdir({ path:'Clips', directory:'LIBRARY' }).then(r => (r.files || []).map(f => f.name || f), () => []);
+    if(!haveClip.includes('reem-clip.mp4')) await FS.writeFile({ path:'Clips/reem-clip.mp4', data:await fileToB64('reem-clip.mp4'), directory:'LIBRARY', recursive:true });
+    clipUrl = (await FS.getUri({ path:'Clips/reem-clip.mp4', directory:'LIBRARY' })).uri;
     voiceReady = true;
   }catch(e){ console.log('voice install', e); }
 }
@@ -822,7 +829,9 @@ async function doSchedule(){
     // hourly time announcement (repeats every day)
     if(S.hourly){
       const hrs = []; for(let h = +S.hFrom, n = 0; n < 24; h = (h + 1) % 24, n++){ hrs.push(h); if(h === +S.hTo) break; }
-      for(const h of hrs) list.push(Object.assign({ id: ID.hour + h, title:'🕐 ريم', body: hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } }, voiceReady ? { sound:'reem_h' + (h % 12 || 12) + '.wav' } : {}));
+      // إشعار الساعة: فيديو ريم يظهر فيه، وصوت الفيديو هو نغمة الإشعار
+      for(const h of hrs) list.push(Object.assign({ id: ID.hour + h, title:'🕐 ريم', body: 'هلا سالم، ' + hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } },
+        voiceReady ? { sound:'reem_clip.wav' } : {}, clipUrl ? { attachments:[{ id:'clip', url: clipUrl }] } : {}));
     }
     // meals (repeat daily)
     if(S.meals){

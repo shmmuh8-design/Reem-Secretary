@@ -901,7 +901,11 @@ function briefFor(offset, morning){
   $('testNotif').onclick = async () => {
     if(!LN) return toast('الإشعارات تشتغل في تطبيق الآيفون');
     try{ let p = await LN.checkPermissions(); if(p.display !== 'granted') p = await LN.requestPermissions(); if(p.display !== 'granted') return toast('فعّل الإشعارات من الإعدادات ← ريم');
-      await LN.schedule({ notifications:[{ id:ID.test, title:'🌷 ريم', body:'هذا إشعار تجريبي — الإشعارات شغالة تمام يا سالم', schedule:{ at:new Date(Date.now() + 5000) } }] });
+      // نفس شكل إشعار الساعة: الفيديو مرفق + صوته نغمة (إذا الملفات جاهزة)
+      const testN = Object.assign({ id:ID.test, title:'🌷 ريم', body:'هذا إشعار تجريبي — الإشعارات شغالة تمام يا سالم', schedule:{ at:new Date(Date.now() + 5000) } },
+        voiceReady ? { sound:'reem_clip.wav' } : {}, clipUrl ? { attachments:[{ id:'clip', url: clipUrl }] } : {});
+      if(!clipUrl) toast('الفيديو ما تحمّل بعد، أغلق التطبيق وافتحه مرة ثانية');
+      await LN.schedule({ notifications:[testN] });
       toast('بيوصلك إشعار بعد ٥ ثواني'); }catch(e){ toast('تعذر إرسال الإشعار'); }
   };
   $('copyUrl').onclick = () => { navigator.clipboard?.writeText('reem://talk').then(() => toast('انسخ ✅ الصقه في الاختصار'), () => toast('reem://talk')); };

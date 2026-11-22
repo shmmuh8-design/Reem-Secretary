@@ -235,6 +235,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
     <div class="set"><button class="btn2" type="button" id="aiTest">🧠 جرّب عقل ريم</button></div>
     <div class="set"><div>دلع ريم 🥰<small>«حبيبي، حياتي» في التحيات والتذكيرات</small></div><label class="sw"><input type="checkbox" data-k="love"><span></span></label></div>
     <div class="set"><div>«وين حبيبي؟»<small>رسالة شوق كل يوم</small></div><input type="time" data-k="miss"></div>
+    <div class="set"><div>🌤️ نشرة الطقس من مناخ<small>9 الصبح، 2 الظهر، 5 العصر، 9 الليل، و12 نص الليل</small></div><label class="sw"><input type="checkbox" data-k="wx"><span></span></label></div>
+    <div class="set"><div>مدينة الطقس</div><select data-k="wxCity"><option value="0">مسقط</option><option value="1">السيب</option><option value="2">صحار</option><option value="3">نزوى</option><option value="4">صلالة</option><option value="5">صور</option><option value="6">عبري</option><option value="7">البريمي</option><option value="8">إبراء</option><option value="9">الرستاق</option><option value="10">بركاء</option><option value="11">خصب</option><option value="12">الدقم</option></select></div>
     <div class="set"><div>تذكير الوجبات<small>الريوق والغدا والعشا</small></div><label class="sw"><input type="checkbox" data-k="meals"><span></span></label></div>
     <div class="set"><div>الريوق</div><input type="time" data-k="breakfast"></div>
     <div class="set"><div>الغدا</div><input type="time" data-k="lunch"></div>
@@ -285,7 +287,7 @@ const LS = 'reem-items', LSS = 'reem-settings';
 const load = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; }catch(e){ return d; } };
 const keep = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 let items = load(LS, []);
-const DEF = { hourly:true, hFrom:0, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, love:true, miss:'16:30', ai:false, aiUrl:'', aiToken:'', voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
+const DEF = { wx:true, wxCity:0, hourly:true, hFrom:0, hTo:23, meals:true, breakfast:'08:00', lunch:'14:00', dinner:'22:00', am:'08:00', pm:'18:00', lead:15, love:true, miss:'16:30', ai:false, aiUrl:'', aiToken:'', voice:'', rate:0.95, pitch:1.0, pitchSet:false, voiceOn:true };
 let S = Object.assign({}, DEF, load(LSS, {}));
 if(!S.h24){ S.hFrom = 0; S.hTo = 23; S.h24 = true; keep(LSS, S); }   // ريم على طول 24 ساعة (تقدر تغيّرها من الإعدادات)
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -800,7 +802,7 @@ async function listen(){
 }
 
 /* ---------------- notifications (iPhone app) ---------------- */
-const ID = { hour:100, meal:140, brief:200, item:1000, test:9999 };
+const ID = { hour:100, meal:140, brief:200, wx:300, item:1000, test:9999 };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const LOVE = {
   morning:['صباح الخير حياتي ☀️','صباح الخير حبيبي 🌷','صباح الورد يا حياتي ☀️'],
@@ -857,9 +859,11 @@ async function doSchedule(){
     if(S.hourly){
       const hrs = []; for(let h = +S.hFrom, n = 0; n < 24; h = (h + 1) % 24, n++){ hrs.push(h); if(h === +S.hTo) break; }
       // إشعار الساعة: فيديو ريم يظهر فيه، وصوت الفيديو هو نغمة الإشعار
-      for(const h of hrs) list.push(Object.assign({ id: ID.hour + h, title:'🕐 ريم', body: 'هلا سالم، ' + hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } },
-        voiceReady ? { sound:'reem_clip.wav' } : {}, clipUrl ? { attachments:[{ id:'clip', url: clipUrl }] } : {}));
+      for(const h of hrs){ if(S.wx && WX_HOURS.includes(h)) continue; list.push(Object.assign({ id: ID.hour + h, title:'🕐 ريم', body: 'هلا سالم، ' + hourLine(h), schedule:{ on:{ hour:h, minute:0 }, repeats:true } },
+        voiceReady ? { sound:'reem_clip.wav' } : {}, clipUrl ? { attachments:[{ id:'clip', url: clipUrl }] } : {})); }
     }
+    // 🌤️ نشرة الطقس (من نفس مصدر مناخ: Open-Meteo) — ٥ أوقات باليوم ليومين قدّام
+    if(S.wx) (await wxSlots(now)).forEach((w, k) => list.push(Object.assign({ id: ID.wx + k, title: w.title, body: w.body, schedule:{ at: w.at } }, voiceReady ? { sound:'reem_clip.wav' } : {})));
     // meals (repeat daily)
     if(S.meals){
       (S.love ? [['breakfast','☕ ريّقت حبيبي؟','لا تطلع بدون ريوق يا حياتي 🥰'], ['lunch','🍛 الغدا جاهز حياتي','قوم تغدّى وريّح شوي 🥰','lunch'], ['dinner','🍽️ العشا جاهز حبيبي','تعشّى خفيف، صحتك عندي أهم 🥰','dinner']]
@@ -900,6 +904,44 @@ function briefFor(offset, morning){
   const label = morning ? 'اليوم' : 'بكرة';   // seen from the day the notification arrives
   if(!list.length) return morning ? 'ما عندك مواعيد مسجلة ' + label + '. يوم موفق 👌' : 'ما عندك شي مسجل ' + label + '. تصبح على خير 🌙';
   return label + ' عندك: ' + list.slice(0, 4).map(i => i.title + (i.allDay ? '' : ' (' + clock(new Date(i.due)) + ')')).join('، ') + (list.length > 4 ? ' وغيرها' : '');
+}
+
+
+/* ---------------- 🌤️ نشرة الطقس (مناخ) ---------------- */
+const WX_HOURS = [9, 14, 17, 21, 0];
+const WX_CITIES = [['مسقط', 23.588, 58.383], ['السيب', 23.67, 58.189], ['صحار', 24.347, 56.709], ['نزوى', 22.933, 57.533], ['صلالة', 17.019, 54.089], ['صور', 22.566, 59.529], ['عبري', 23.226, 56.516], ['البريمي', 24.25, 55.793], ['إبراء', 22.69, 58.534], ['الرستاق', 23.39, 57.424], ['بركاء', 23.679, 57.886], ['خصب', 26.18, 56.247], ['الدقم', 19.662, 57.704]];
+const WMO = c => c === 0 ? ['☀️','صحو'] : c <= 2 ? ['🌤️','غائم جزئياً'] : c === 3 ? ['☁️','غائم'] : c <= 48 ? ['🌫️','ضباب'] : c <= 57 ? ['🌦️','رذاذ'] : c <= 67 ? ['🌧️','مطر'] : c <= 77 ? ['🌨️','ثلج'] : c <= 82 ? ['🌧️','زخات مطر'] : ['⛈️','رعد وأمطار'];
+async function wxFetch(){
+  const [name, lat, lon] = WX_CITIES[+S.wxCity] || WX_CITIES[0];
+  const key = 'reem-wx-' + (+S.wxCity || 0);
+  let c = null; try{ c = JSON.parse(localStorage.getItem(key) || 'null'); }catch(e){}
+  if(c && Date.now() - c.at < 3 * 3600e3) return { name, h:c.h };
+  try{
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&hourly=temperature_2m,relative_humidity_2m,weather_code,precipitation_probability&timezone=auto&forecast_days=3', { signal: ctl.signal });
+    const j = await r.json(); const H = j.hourly; if(!H || !H.time) throw 0;
+    const h = H.time.map((t, i) => ({ t, temp: H.temperature_2m[i], rh: H.relative_humidity_2m[i], code: H.weather_code[i], pop: H.precipitation_probability ? H.precipitation_probability[i] : null }));
+    try{ localStorage.setItem(key, JSON.stringify({ at: Date.now(), h })); }catch(e){}
+    return { name, h };
+  }catch(e){ return c ? { name, h:c.h } : null; }
+}
+async function wxSlots(now){
+  const w = await wxFetch(); if(!w) return [];
+  const out = [], LBL = { 9:'☀️ صباح الخير', 14:'🌞 الظهر', 17:'🌇 العصر', 21:'🌙 الليل', 0:'🌌 نص الليل' };
+  for(const x of w.h){
+    const d = new Date(x.t); const h = d.getHours();
+    if(!WX_HOURS.includes(h) || d.getMinutes() !== 0 || d <= now || d - now > 52 * 3600e3) continue;
+    const [ic, txt] = WMO(x.code);
+    const hello = S.love ? 'حبيبي' : 'يا سالم';
+    let tip = '';
+    if(x.pop >= 50 || x.code >= 51) tip = ' — خذ احتياطك من المطر ☔';
+    else if(x.temp >= 40) tip = ' — حر شديد، اشرب ماي واجد 💧';
+    else if(x.rh >= 80) tip = ' — رطوبة عالية 💦';
+    else if(x.temp <= 18) tip = ' — الجو بارد، تدفّى 🧥';
+    out.push({ at: d, title: LBL[h] + ' ' + hello + ' — ' + ic + ' ' + Math.round(x.temp) + '° في ' + w.name,
+      body: 'الساعة ' + clock(d) + ': ' + txt + '، الحرارة ' + Math.round(x.temp) + '°، الرطوبة ' + Math.round(x.rh) + '%' + (x.pop != null && x.pop > 0 ? '، احتمال المطر ' + x.pop + '%' : '') + tip + ' 🌷' });
+  }
+  return out.slice(0, 10);
 }
 
 /* ---------------- settings ---------------- */

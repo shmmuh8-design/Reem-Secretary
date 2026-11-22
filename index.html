@@ -120,6 +120,22 @@ details.box[open] summary::after{transform:rotate(-90deg)}
   padding:10px 16px;border-radius:12px;font-size:.88rem;transition:.25s;pointer-events:none;max-width:90vw;text-align:center;z-index:9}
 .toast.show{opacity:1;transform:translateX(-50%)}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--saffron);outline-offset:2px}
+
+/* ===== 🚀 مشاريعي ===== */
+.pj-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 10px}
+.pj-sum div{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center}
+.pj-sum b{display:block;font-size:1.25rem}.pj-sum span{font-size:.72rem;color:var(--muted)}
+.pj{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
+.pj:last-child{border-bottom:0}
+.pj .ic{font-size:1.7rem;grid-row:span 2}
+.pj b{font-size:1rem}.pj small{color:var(--muted);font-size:.8rem}
+.pj .nx{grid-column:2 / 4;font-size:.85rem;background:var(--bubble);border-radius:10px;padding:6px 10px;margin-top:4px}
+.pj .nx:empty{display:none}
+.pjst{border:0;border-radius:999px;padding:4px 10px;font:700 .75rem var(--body);cursor:pointer;white-space:nowrap}
+.pjst.dev{background:#e6e3f7;color:#4b3aa8}.pjst.tf{background:#dff1f6;color:#0e5d6e}.pjst.rev{background:#fff1d6;color:#8a5a00}
+.pjst.fix{background:#fde2e2;color:#a12a2a}.pjst.live{background:#dcf5e5;color:#17703d}.pjst.wait{background:#ececec;color:#555}
+.pj .tools{grid-column:2 / 4;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pj .tools button,.pj .tools a{font:600 .78rem var(--body);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:5px 9px;text-decoration:none;cursor:pointer}
 </style>
 </head>
 <body>
@@ -172,6 +188,17 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
       </div>
       <button class="mic" type="submit" style="margin:0;width:100%">سجّل</button>
     </form>
+  </details>
+
+
+  <details class="box" id="pjBox" open>
+    <summary>🚀 مشاريعي <small id="pjCount" style="font-weight:400;color:var(--muted)"></small></summary>
+    <div class="form2">
+      <div class="pj-sum" id="pjSum"></div>
+      <div class="list" id="pjList"></div>
+      <button class="btn2" type="button" id="pjAdd">➕ مشروع جديد</button>
+      <div class="howto" style="padding:0">اضغط على الحالة عشان تغيّرها، و«✏️ الخطوة الجاية» عشان تكتب وش باقي. ريم تذكرك بالخطوة الجاية في الملخص.</div>
+    </div>
   </details>
 
   <details class="box" id="peopleBox">
@@ -1050,6 +1077,56 @@ if(isNative){
   // web: same deep-link via ?talk or ?q=
   if(location.search) handleUrl('reem://talk/' + location.search);
 }
+
+/* ===== 🚀 مشاريعي: لوحة متابعة التطبيقات ===== */
+(function(){
+  const ST = [['dev','🛠️ تطوير'],['tf','🧪 TestFlight'],['rev','⏳ في المراجعة'],['fix','⚠️ يحتاج تعديل'],['live','✅ منشور'],['wait','⌛ انتظار']];
+  const stName = k => (ST.find(x => x[0] === k) || ST[0])[1];
+  const SEED = [
+    { id:'fatoorti', ic:'🧾', n:'فاتورتي', v:'1.1', st:'live', nx:'التسويق: رسائل واتساب وسناب وإنستغرام عن فاتورتي برو', dl:'', url:'https://apps.apple.com/app/id6834834851' },
+    { id:'suqya', ic:'💧', n:'سقيا', v:'1.1', st:'live', nx:'يزيد تحميله (٢٨ بالأسبوع) — لاحقاً: اشتراك للموردين', dl:'28', url:'' },
+    { id:'manakh', ic:'🌤️', n:'مناخ', v:'1.5', st:'tf', nx:'أرسل 1.5 للمراجعة (برو مجاني، بدون اشتراكات)', dl:'', url:'https://apps.apple.com/app/id6823329197' },
+    { id:'souq', ic:'🛒', n:'السوق العام', v:'1.2', st:'rev', nx:'انتظار المراجعة، وبعدها نزّل ١٠–٢٠ إعلان', dl:'', url:'' },
+    { id:'rukhsati', ic:'🚗', n:'رخصتي', v:'1.1', st:'fix', nx:'جرّب حساب المعلّم التجريبي، وحطه في App Review، ورد عليهم وأعد الإرسال', dl:'', url:'' },
+    { id:'mawidi', ic:'📅', n:'موعدي', v:'1.0', st:'dev', nx:'ملف التوقيع ← بناء Codemagic ← محل تجريبي ← إرسال', dl:'', url:'https://shmmuh8-design.github.io/mawidi/' },
+    { id:'khidma', ic:'🔧', n:'خدمة بلس', v:'', st:'fix', nx:'إعادة التقديم لآبل', dl:'', url:'' },
+    { id:'dnb', ic:'🏢', n:'حساب الشركة (D&B)', v:'', st:'wait', nx:'طلب تعديل الاسم 35023967 — ريم تذكرك ٢ ديسمبر', dl:'', url:'' }
+  ];
+  let P; try{ P = JSON.parse(localStorage.getItem('reem-projects') || 'null'); }catch(e){}
+  if(!Array.isArray(P)) P = SEED;
+  const save = () => { try{ localStorage.setItem('reem-projects', JSON.stringify(P)); }catch(e){} };
+  const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  function draw(){
+    const c = k => P.filter(p => p.st === k).length;
+    $('pjCount').textContent = '(' + P.length + ')';
+    $('pjSum').innerHTML = [['✅','منشور',c('live')],['⏳','مراجعة',c('rev')],['⚠️','تعديل',c('fix')],['🛠️','تطوير',c('dev') + c('tf')]].map(([i, t, n]) => `<div><b>${n}</b><span>${i} ${t}</span></div>`).join('');
+    const order = { fix:0, rev:1, tf:2, dev:3, wait:4, live:5 };
+    $('pjList').innerHTML = P.slice().sort((a, b) => order[a.st] - order[b.st]).map(p => `<div class="pj" data-id="${p.id}">
+      <span class="ic">${esc(p.ic || '📱')}</span><b>${esc(p.n)} ${p.v ? `<small>${esc(p.v)}</small>` : ''}</b><button class="pjst ${p.st}" data-act="st">${stName(p.st)}</button>
+      <small>${p.dl ? '⬇️ ' + esc(p.dl) + ' تحميل' : ''}</small><span></span>
+      <div class="nx">${p.nx ? '👉 ' + esc(p.nx) : ''}</div>
+      <div class="tools"><button data-act="nx">✏️ الخطوة الجاية</button><button data-act="v">🔢 النسخة</button><button data-act="dl">⬇️ التحميلات</button>${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">🔗 فتح</a>` : ''}<button data-act="del">🗑️</button></div></div>`).join('');
+    $$pj('[data-act]').forEach(b => b.onclick = () => act(b.closest('.pj').dataset.id, b.dataset.act));
+  }
+  const $$pj = q => document.querySelectorAll('#pjList ' + q);
+  function act(id, a){
+    const p = P.find(x => x.id === id); if(!p) return;
+    if(a === 'st'){ const i = ST.findIndex(x => x[0] === p.st); p.st = ST[(i + 1) % ST.length][0]; toast(p.n + ': ' + stName(p.st)); }
+    else if(a === 'nx'){ const v = prompt('وش الخطوة الجاية لـ ' + p.n + '؟', p.nx || ''); if(v === null) return; p.nx = v.trim(); }
+    else if(a === 'v'){ const v = prompt('رقم النسخة', p.v || ''); if(v === null) return; p.v = v.trim(); }
+    else if(a === 'dl'){ const v = prompt('كم تحميل؟ (مثلاً: 28 بالأسبوع)', p.dl || ''); if(v === null) return; p.dl = v.trim(); }
+    else if(a === 'del'){ if(!confirm('حذف «' + p.n + '» من القائمة؟')) return; P = P.filter(x => x !== p); }
+    save(); draw();
+  }
+  $('pjAdd').onclick = () => {
+    const n = prompt('اسم المشروع'); if(!n || !n.trim()) return;
+    const ic = prompt('إيموجي للمشروع (اختياري)', '📱') || '📱';
+    P.push({ id:'p' + Date.now(), ic, n:n.trim(), v:'', st:'dev', nx:'', dl:'', url:'' }); save(); draw();
+  };
+  draw();
+  // ريم تقول الخطوة الأهم في الترحيب
+  window.reemProjectHint = () => { const p = P.find(x => x.st === 'fix') || P.find(x => x.st === 'tf') || P.find(x => x.st === 'dev'); return p && p.nx ? p.ic + ' ' + p.n + ': ' + p.nx : ''; };
+})();
 </script>
 </body>
 </html>
